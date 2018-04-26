@@ -1,6 +1,5 @@
 package com.vmware.borathon;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -8,8 +7,12 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@AllArgsConstructor
 public class Capacity {
-    int memoryGB;
-    int cpuMillicore;
+    long memoryGB;
+    long cpuMillicore;
+
+    public Capacity(long memoryGB, long cpuMillicore) {
+        this.memoryGB = memoryGB;
+        this.cpuMillicore = cpuMillicore;
+    }
 }
