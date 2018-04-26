@@ -2,11 +2,13 @@ package com.vmware.borathon;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Getter
 @Setter
+@ToString
 public class Pod extends Capacity{
 
     private static final Logger log = LoggerFactory.getLogger(Pod.class);
@@ -21,7 +23,8 @@ public class Pod extends Capacity{
     }
 
     void joinedNode(Node parentNode){
-        log.info("{} joins the Node {}", this.name, parentNode.getName());
+        log.info("Pod {} joins the Node {}", this, parentNode);
         this.parentNode = parentNode;
+
     }
 }
