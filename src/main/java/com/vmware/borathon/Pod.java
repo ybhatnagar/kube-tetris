@@ -11,18 +11,18 @@ public class Pod {
 
     private static final Logger log = LoggerFactory.getLogger(Pod.class);
 
-    private Capacity capacity;
+    private Capacity request;
 
     private Node parentNode;
 
     private String name;
 
     public Pod(String name, long memoryMB, long cpuMillicore) {
-        this.capacity = new Capacity(memoryMB, cpuMillicore);
         this.name = name;
+        this.request = new Capacity(memoryMB, cpuMillicore);
     }
 
-    void joinedNode(Node parentNode){
+    public void joinedNode(Node parentNode){
         this.parentNode = parentNode;
         log.info("Pod {} joins the Node {}", this, parentNode);
 
@@ -31,7 +31,7 @@ public class Pod {
     @Override
     public String toString() {
         return "Pod{" +
-                "capacity=" + capacity +
+                "request=" + request +
                 ", parentNode=" + parentNode.getName() +
                 ", name='" + name + '\'' +
                 '}';

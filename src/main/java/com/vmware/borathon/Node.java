@@ -31,11 +31,11 @@ public class Node {
         this.pods = new ArrayList<>();
     }
 
-    boolean addPod(Pod pod) {
-        if (availableCapacity.getMemoryMB() >= pod.getCapacity().getMemoryMB()
-                && availableCapacity.getCpuMillicore() >= pod.getCapacity().getCpuMillicore()) {
-            availableCapacity.setMemoryMB(availableCapacity.getMemoryMB() - pod.getCapacity().getMemoryMB());
-            availableCapacity.setCpuMillicore(availableCapacity.getCpuMillicore() - pod.getCapacity().getCpuMillicore());
+    public boolean addPod(Pod pod) {
+        if (availableCapacity.getMemoryMB() >= pod.getRequest().getMemoryMB()
+                && availableCapacity.getCpuMillicore() >= pod.getRequest().getCpuMillicore()) {
+            availableCapacity.setMemoryMB(availableCapacity.getMemoryMB() - pod.getRequest().getMemoryMB());
+            availableCapacity.setCpuMillicore(availableCapacity.getCpuMillicore() - pod.getRequest().getCpuMillicore());
             pods.add(pod);
             pod.joinedNode(this);
             return true;
@@ -43,7 +43,7 @@ public class Node {
         return false;
     }
 
-    void joinedMigrationController(MigrationController migrationController){
+    public void joinedMigrationController(MigrationController migrationController){
         this.migrationController = migrationController;
         log.info("{} joins the migration controller", this);
     }
