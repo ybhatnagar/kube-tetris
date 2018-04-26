@@ -12,7 +12,8 @@ public class Node extends Capacity{
 
     private MigrationController migrationController;
 
-    private final List<Pod> pods;
+    private List<Pod> pods;
+    private String nodeName;
 
     public Node(int memoryGB, int cpuMillicore) {
         super(memoryGB, cpuMillicore);
