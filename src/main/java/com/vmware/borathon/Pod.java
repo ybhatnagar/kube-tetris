@@ -7,7 +7,8 @@ public class Pod extends Capacity{
 
     private Logger log = LoggerFactory.getLogger(Pod.class);
 
-    Node node;
+    private Node node;
+    private String podName;
 
     public Pod(int memoryGB, int cpuMillicore) {
         super(memoryGB, cpuMillicore);
