@@ -16,4 +16,9 @@ public class MigrationControllerImpl implements MigrationController{
         nodes.add(node);
         node.joinedMigrationController(this);
     }
+
+    @Override
+    public List<Node> getNodes() {
+        return nodes;
+    }
 }
