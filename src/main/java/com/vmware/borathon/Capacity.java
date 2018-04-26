@@ -15,4 +15,8 @@ public class Capacity {
         this.memoryMB = memoryMB;
         this.cpuMillicore = cpuMillicore;
     }
+
+    public double getCpuMemoryrRatio(){
+        return (this.cpuMillicore/this.memoryMB);
+    }
 }
