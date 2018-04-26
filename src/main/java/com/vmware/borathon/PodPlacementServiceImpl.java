@@ -21,8 +21,7 @@ public class PodPlacementServiceImpl implements PodPlacementService {
     @Override
     public boolean placeCapacity(Capacity placeCapacity, List<Node> nodes) {
         if (checkPlacementElibility(placeCapacity, nodes)) {
-            //requiredCapacities stores the amount of request required
-//            List<Capacity> requiredCapacities =
+            //requiredCapacities stores the amount of resource required to place this capacity on ith node
         }
         return false;
     }

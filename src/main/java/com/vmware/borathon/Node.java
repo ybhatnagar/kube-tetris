@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 @Getter
 @Setter
-public class Node {
+public class Node extends Resource{
 
     private static final Logger log = LoggerFactory.getLogger(Node.class);
 
@@ -18,16 +18,14 @@ public class Node {
 
     private List<Pod> pods;
 
-    private String name;
-
     private Capacity totalCapacity;
 
     private Capacity availableCapacity;
 
-    public Node(String name, long memoryMB, long cpuMillicore) {
+    public Node(int id, String name, long memoryMB, long cpuMillicore) {
+        super(id, name);
         this.totalCapacity = new Capacity(memoryMB, cpuMillicore);
         this.availableCapacity = new Capacity(memoryMB, cpuMillicore);
-        this.name = name;
         this.pods = new ArrayList<>();
     }
 
@@ -51,7 +49,7 @@ public class Node {
     @Override
     public String toString() {
         return "Node{" +
-                "name='" + name + '\'' +
+                "name='" + this.getName() + '\'' +
                 ", totalCapacity=" + totalCapacity +
                 ", availableCapacity=" + availableCapacity +
                 '}';
