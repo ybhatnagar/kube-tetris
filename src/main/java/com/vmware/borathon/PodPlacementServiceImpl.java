@@ -30,7 +30,7 @@ public class PodPlacementServiceImpl implements PodPlacementService {
         if (checkPlacementElibility(placeCapacity, nodes)) {
             int directlyPlaceOn = computeNormalPlacement(placeCapacity, nodes);
             if (directlyPlaceOn >= 0) {
-                log.info("Capacity {} is directly placed on {} node", placeCapacity, directlyPlaceOn);
+                log.info("Capacity {} is directly placed on {} node", placeCapacity, nodes.get(directlyPlaceOn));
                 return true;
             } else {
                 //placementPriority stores the information about which node should be tried first
@@ -53,7 +53,8 @@ public class PodPlacementServiceImpl implements PodPlacementService {
                         placeCapacity.setMemoryMB(migrablePod.getRequest().getMemoryMB());
                         placeCapacity.setCpuMillicore(migrablePod.getRequest().getCpuMillicore());
                         log.info("Try placing {} capacity on {} nodes", placeCapacity, nodes);
-                        placeCapacity(placeCapacity, nodes);
+                        return placeCapacity(placeCapacity, nodes);
+
                     } else {
                         log.info("Failed to place {} on node {}", placeCapacity, node);
                     }
@@ -101,7 +102,7 @@ public class PodPlacementServiceImpl implements PodPlacementService {
         for (int nodeId = 0; nodeId < requiredCapacity.size(); nodeId++) {
             Capacity capacity = requiredCapacity.get(nodeId);
             log.info("Required Capacity for node {} is {}", nodeId, capacity);
-            Long pairedValue = PairDepair.pair(capacity.getMemoryMB(), capacity.getCpuMillicore());
+            Long pairedValue = PairDepair.pair(Math.abs(capacity.getMemoryMB()), Math.abs(capacity.getCpuMillicore()));
             log.info("Paired value for node {} is {}", nodeId, pairedValue);
             pairedCapacity.put(nodeId, pairedValue);
         }
@@ -111,8 +112,8 @@ public class PodPlacementServiceImpl implements PodPlacementService {
 
     private Capacity computeRequiredCapacity(Capacity placeCapacity, Node node) {
             Capacity availableCapacity = node.getAvailableCapacity();
-            return new Capacity(Math.abs(placeCapacity.getMemoryMB() - availableCapacity.getMemoryMB()),
-                    Math.abs(placeCapacity.getCpuMillicore() - availableCapacity.getCpuMillicore()));
+            return new Capacity(placeCapacity.getMemoryMB() - availableCapacity.getMemoryMB(),
+                    placeCapacity.getCpuMillicore() - availableCapacity.getCpuMillicore());
     }
 
     private static <K, V extends Comparable<V>> Map<K, V>   sortByValues(final Map<K, V> map) {
