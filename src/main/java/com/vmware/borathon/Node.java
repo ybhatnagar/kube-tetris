@@ -24,9 +24,9 @@ public class Node {
 
     private Capacity availableCapacity;
 
-    public Node(String name, long memoryGB, long cpuMillicore) {
-        this.totalCapacity = new Capacity(memoryGB, cpuMillicore);
-        this.availableCapacity = new Capacity(memoryGB, cpuMillicore);
+    public Node(String name, long memoryMB, long cpuMillicore) {
+        this.totalCapacity = new Capacity(memoryMB, cpuMillicore);
+        this.availableCapacity = new Capacity(memoryMB, cpuMillicore);
         this.name = name;
         this.pods = new ArrayList<>();
     }

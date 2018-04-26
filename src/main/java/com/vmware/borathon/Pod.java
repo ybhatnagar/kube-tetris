@@ -17,8 +17,8 @@ public class Pod {
 
     private String name;
 
-    public Pod(String name, long memoryGB, long cpuMillicore) {
-        this.capacity = new Capacity(memoryGB, cpuMillicore);
+    public Pod(String name, long memoryMB, long cpuMillicore) {
+        this.capacity = new Capacity(memoryMB, cpuMillicore);
         this.name = name;
     }
 
