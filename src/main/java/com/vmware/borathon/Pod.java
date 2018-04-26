@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 
 @Getter
 @Setter
-public class Pod {
+public class Pod extends Resource {
 
     private static final Logger log = LoggerFactory.getLogger(Pod.class);
 
@@ -17,8 +17,8 @@ public class Pod {
 
     private String name;
 
-    public Pod(String name, long memoryMB, long cpuMillicore) {
-        this.name = name;
+    public Pod(int id, String name, long memoryMB, long cpuMillicore) {
+        super(id, name);
         this.request = new Capacity(memoryMB, cpuMillicore);
     }
 
