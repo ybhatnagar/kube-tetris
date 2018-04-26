@@ -33,7 +33,33 @@ public class WorkloadBalancer {
         return sum;
     }
 
-    
+    public boolean isSwappable(Node nodeA, Node nodeB, int podIdA, int podIdB ){
+
+        long cpuAvailableAfterPodAGone = nodeA.getAvailableCapacity().getCpuMillicore() + nodeA.getPods().get(podIdA).getRequest().getCpuMillicore();
+        long memAvailableAfterPodAGone = nodeA.getAvailableCapacity().getMemoryMB() + nodeA.getPods().get(podIdA).getRequest().getMemoryMB();
+
+        long cpuAvailableAfterPodBGone = nodeB.getAvailableCapacity().getCpuMillicore() + nodeB.getPods().get(podIdB).getRequest().getCpuMillicore();
+        long memAvailableAfterPodBGone = nodeB.getAvailableCapacity().getMemoryMB() + nodeB.getPods().get(podIdB).getRequest().getMemoryMB();
+
+
+        long cpuRequiredByPodIdB = nodeB.getPods().get(podIdB).getRequest().getCpuMillicore();
+        long memoryRequiredByPodIdB = nodeB.getPods().get(podIdB).getRequest().getMemoryMB();
+
+        long cpuRequiredByPodIdA = nodeA.getPods().get(podIdA).getRequest().getCpuMillicore();
+        long memoryRequiredByPodIdA = nodeA.getPods().get(podIdA).getRequest().getMemoryMB();
+
+
+        if(cpuAvailableAfterPodAGone < cpuRequiredByPodIdB || memAvailableAfterPodAGone < memoryRequiredByPodIdB)
+            return false; //pod B cannot fit at A
+        else if(cpuAvailableAfterPodBGone < cpuRequiredByPodIdA || memAvailableAfterPodBGone < memoryRequiredByPodIdA)
+            return false; //pod a cannot fit at B
+        else{
+            //change the memory and cpu after the swap
+            nodeA.setAvailableCapacity(new Capacity(memAvailableAfterPodAGone-memoryRequiredByPodIdB,cpuAvailableAfterPodAGone - cpuRequiredByPodIdB));
+            nodeB.setAvailableCapacity(new Capacity(memAvailableAfterPodBGone-memoryRequiredByPodIdA,cpuAvailableAfterPodBGone - cpuRequiredByPodIdA));
+            return true;
+        }
+    }
 
 
 }

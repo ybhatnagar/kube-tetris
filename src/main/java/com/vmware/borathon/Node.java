@@ -1,7 +1,9 @@
 package com.vmware.borathon;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +18,7 @@ public class Node extends Resource{
 
     private MigrationController migrationController;
 
-    private List<Pod> pods;
+    private Map<Integer,Pod> pods;
 
     private Capacity totalCapacity;
 
@@ -26,7 +28,7 @@ public class Node extends Resource{
         super(id, name);
         this.totalCapacity = new Capacity(memoryMB, cpuMillicore);
         this.availableCapacity = new Capacity(memoryMB, cpuMillicore);
-        this.pods = new ArrayList<>();
+        this.pods = new HashMap<>();
     }
 
     public boolean addPod(Pod pod) {
@@ -34,7 +36,7 @@ public class Node extends Resource{
                 && availableCapacity.getCpuMillicore() >= pod.getRequest().getCpuMillicore()) {
             availableCapacity.setMemoryMB(availableCapacity.getMemoryMB() - pod.getRequest().getMemoryMB());
             availableCapacity.setCpuMillicore(availableCapacity.getCpuMillicore() - pod.getRequest().getCpuMillicore());
-            pods.add(pod);
+            pods.put(pod.getId(),pod);
             pod.joinedNode(this);
             return true;
         }
