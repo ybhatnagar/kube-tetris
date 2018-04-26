@@ -3,19 +3,29 @@ package com.vmware.borathon;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Node {
-    private final List<Container> containers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    public Node() {
-        this.containers = new ArrayList<>();
+public class Node extends Capacity{
+
+    private Logger log = LoggerFactory.getLogger(Node.class);
+
+    private MigrationController migrationController;
+
+    private final List<Pod> pods;
+
+    public Node(int memoryGB, int cpuMillicore) {
+        super(memoryGB, cpuMillicore);
+        this.pods = new ArrayList<>();
     }
 
-    void addContainer(Container container) {
-        containers.add(container);
-        container.joinedNode(this);
+    void addPod(Pod pod) {
+        pods.add(pod);
+        pod.joinedNode(this);
     }
 
     void joinedMigrationController(MigrationController migrationController){
-
+        log.info("{} joins the migration controller", this);
+        this.migrationController = migrationController;
     }
 }
