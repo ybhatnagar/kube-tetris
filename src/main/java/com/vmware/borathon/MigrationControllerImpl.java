@@ -18,6 +18,12 @@ public class MigrationControllerImpl implements MigrationController{
     }
 
     @Override
+    public void removeNode(Node node) {
+        nodes.remove(node);
+        node.leftMigrationController();
+    }
+
+    @Override
     public List<Node> getNodes() {
         return nodes;
     }
