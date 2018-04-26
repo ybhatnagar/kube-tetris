@@ -1,8 +1,6 @@
 package com.vmware.borathon;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import lombok.Getter;
@@ -18,6 +16,9 @@ public class Node extends Resource{
 
     private MigrationController migrationController;
 
+    private static final long CPU_HEADROOM = 0;
+    private static final long MEM_HEADROOM = 0;
+
     private Map<Integer,Pod> pods;
 
     private Capacity totalCapacity;
@@ -32,8 +33,8 @@ public class Node extends Resource{
     }
 
     public boolean addPod(Pod pod) {
-        if (availableCapacity.getMemoryMB() >= pod.getRequest().getMemoryMB()
-                && availableCapacity.getCpuMillicore() >= pod.getRequest().getCpuMillicore()) {
+        if ((availableCapacity.getMemoryMB() - MEM_HEADROOM) >= pod.getRequest().getMemoryMB()
+                && (availableCapacity.getCpuMillicore() - CPU_HEADROOM) >= pod.getRequest().getCpuMillicore()) {
             availableCapacity.setMemoryMB(availableCapacity.getMemoryMB() - pod.getRequest().getMemoryMB());
             availableCapacity.setCpuMillicore(availableCapacity.getCpuMillicore() - pod.getRequest().getCpuMillicore());
             pods.put(pod.getId(),pod);
@@ -43,9 +44,25 @@ public class Node extends Resource{
         return false;
     }
 
+    public boolean removePod(Pod pod) {
+            Pod removedPod = pods.remove(pod.getId());
+            if(removedPod != null) {
+                availableCapacity.setMemoryMB(availableCapacity.getMemoryMB() + pod.getRequest().getMemoryMB());
+                availableCapacity.setCpuMillicore(availableCapacity.getCpuMillicore() + pod.getRequest().getCpuMillicore());
+                pod.leftNode();
+                return true;
+            }
+            return false;
+    }
+
+
     public void joinedMigrationController(MigrationController migrationController){
         this.migrationController = migrationController;
         log.info("{} joins the migration controller", this);
+    }
+
+    public void leftMigrationController(){
+        log.info("{} left the migration controller", this);
     }
 
     @Override

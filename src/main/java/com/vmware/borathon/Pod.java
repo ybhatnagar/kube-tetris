@@ -25,7 +25,10 @@ public class Pod extends Resource {
     public void joinedNode(Node parentNode){
         this.parentNode = parentNode;
         log.info("Pod {} joins the Node {}", this, parentNode);
+    }
 
+    public void leftNode(){
+        log.info("Pod {} left the Node {}", this, parentNode);
     }
 
     @Override
