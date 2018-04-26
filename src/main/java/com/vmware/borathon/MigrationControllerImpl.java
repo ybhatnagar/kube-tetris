@@ -1,7 +1,9 @@
 package com.vmware.borathon;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MigrationControllerImpl implements MigrationController{
 
@@ -26,5 +28,12 @@ public class MigrationControllerImpl implements MigrationController{
     @Override
     public List<Node> getNodes() {
         return nodes;
+    }
+
+    @Override
+    public List<Node> getNodesSortedByRatio(){
+        return nodes.stream()
+                .sorted(Comparator.comparingDouble(n -> n.getAvailableCapacity().getCpuMemoryRatio()))
+                .collect(Collectors.toList());
     }
 }

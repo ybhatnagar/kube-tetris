@@ -1,7 +1,9 @@
 package com.vmware.borathon;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -72,5 +74,20 @@ public class Node extends Resource{
                 ", totalCapacity=" + totalCapacity +
                 ", availableCapacity=" + availableCapacity +
                 '}';
+    }
+
+    public List<Pod> getPodsSortedByCpu(){
+        return this.getPods().values()
+                .stream()
+                .sorted((pod1, pod2) -> Long.compare(pod2.getRequest().getCpuMillicore(), pod1.getRequest().getCpuMillicore()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Pod> getPodsSortedByMem(){
+        return this.getPods().values()
+                .stream()
+                .sorted((pod1, pod2) -> Long.compare(pod2.getRequest().getMemoryMB(), pod1.getRequest().getMemoryMB()))
+                .collect(Collectors.toList());
+
     }
 }
