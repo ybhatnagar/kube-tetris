@@ -1,21 +1,27 @@
 package com.vmware.borathon;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Getter
+@Setter
 public class Pod extends Capacity{
 
-    private Logger log = LoggerFactory.getLogger(Pod.class);
+    private static final Logger log = LoggerFactory.getLogger(Pod.class);
 
-    private Node node;
-    private String podName;
+    private Node parentNode;
 
-    public Pod(int memoryGB, int cpuMillicore) {
+    private String name;
+
+    public Pod(String name, long memoryGB, long cpuMillicore) {
         super(memoryGB, cpuMillicore);
+        this.name = name;
     }
 
-    void joinedNode(Node node){
-        log.info("{} joins the Node {}", this, node);
-        this.node = node;
+    void joinedNode(Node parentNode){
+        log.info("{} joins the Node {}", this.name, parentNode.getName());
+        this.parentNode = parentNode;
     }
 }
