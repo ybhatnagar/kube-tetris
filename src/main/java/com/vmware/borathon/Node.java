@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 @Getter
 @Setter
-public class Node extends Capacity{
+public class Node {
 
     private static final Logger log = LoggerFactory.getLogger(Node.class);
 
@@ -20,16 +20,22 @@ public class Node extends Capacity{
 
     private String name;
 
+    private Capacity totalCapacity;
+
+    private Capacity availableCapacity;
+
     public Node(String name, long memoryGB, long cpuMillicore) {
-        super(memoryGB, cpuMillicore);
+        this.totalCapacity = new Capacity(memoryGB, cpuMillicore);
+        this.availableCapacity = new Capacity(memoryGB, cpuMillicore);
         this.name = name;
         this.pods = new ArrayList<>();
     }
 
     boolean addPod(Pod pod) {
-        if (this.memoryMB >= pod.memoryMB && this.cpuMillicore >= pod.cpuMillicore) {
-            this.memoryMB = this.memoryMB - pod.memoryMB;
-            this.cpuMillicore = this.cpuMillicore - pod.cpuMillicore;
+        if (availableCapacity.getMemoryMB() >= pod.getCapacity().getMemoryMB()
+                && availableCapacity.getCpuMillicore() >= pod.getCapacity().getCpuMillicore()) {
+            availableCapacity.setMemoryMB(availableCapacity.getMemoryMB() - pod.getCapacity().getMemoryMB());
+            availableCapacity.setCpuMillicore(availableCapacity.getCpuMillicore() - pod.getCapacity().getCpuMillicore());
             pods.add(pod);
             pod.joinedNode(this);
             return true;
@@ -39,15 +45,15 @@ public class Node extends Capacity{
 
     void joinedMigrationController(MigrationController migrationController){
         this.migrationController = migrationController;
-        log.info("{} joins the migration controller", this.name);
+        log.info("{} joins the migration controller", this);
     }
 
     @Override
     public String toString() {
         return "Node{" +
                 "name='" + name + '\'' +
-                ", memoryMB=" + memoryMB +
-                ", cpuMillicore=" + cpuMillicore +
+                ", totalCapacity=" + totalCapacity +
+                ", availableCapacity=" + availableCapacity +
                 '}';
     }
 }

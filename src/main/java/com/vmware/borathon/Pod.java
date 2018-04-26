@@ -7,16 +7,18 @@ import org.slf4j.LoggerFactory;
 
 @Getter
 @Setter
-public class Pod extends Capacity{
+public class Pod {
 
     private static final Logger log = LoggerFactory.getLogger(Pod.class);
+
+    private Capacity capacity;
 
     private Node parentNode;
 
     private String name;
 
     public Pod(String name, long memoryGB, long cpuMillicore) {
-        super(memoryGB, cpuMillicore);
+        this.capacity = new Capacity(memoryGB, cpuMillicore);
         this.name = name;
     }
 
@@ -29,10 +31,9 @@ public class Pod extends Capacity{
     @Override
     public String toString() {
         return "Pod{" +
-                "parentNode=" + parentNode.getName() +
+                "capacity=" + capacity +
+                ", parentNode=" + parentNode.getName() +
                 ", name='" + name + '\'' +
-                ", memoryMB=" + memoryMB +
-                ", cpuMillicore=" + cpuMillicore +
                 '}';
     }
 }
