@@ -9,6 +9,6 @@ public class Main {
         List<Node> inputNodes = NodeDataGenerator.generate(5, 300);
         inputNodes.forEach(node -> migrationController.addNode(node));
         PodPlacementService podPlacementService = new PodPlacementServiceImpl();
-        podPlacementService.placeCapacity(new Capacity(00, 400), inputNodes);
+        podPlacementService.placeCapacity(new Capacity(1500, 1000), inputNodes);
     }
 }
