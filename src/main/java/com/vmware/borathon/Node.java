@@ -60,11 +60,11 @@ public class Node extends Resource{
 
     public void joinedMigrationController(MigrationController migrationController){
         this.migrationController = migrationController;
-        log.info("{} joins the migration controller", this);
+        log.debug("{} joins the migration controller", this);
     }
 
     public void leftMigrationController(){
-        log.info("{} left the migration controller", this);
+        log.debug("{} left the migration controller", this);
     }
 
     @Override
