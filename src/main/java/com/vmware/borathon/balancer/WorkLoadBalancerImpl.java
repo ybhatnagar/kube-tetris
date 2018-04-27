@@ -46,7 +46,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
         double entropyBeforeSwap = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
         double entropyAfterSwap;
         if(nodeA.removePod(podA) && nodeB.removePod(podB)) {
-            if (nodeA.addPod(podB) && nodeB.addPod(podA)) {
+            boolean bAddedToA = nodeA.addPod(podB);
+            boolean aAddedToB = nodeB.addPod(podA);
+
+            if (bAddedToA && aAddedToB) {
                 //Swap is successful, check for entropy again
                 entropyAfterSwap = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
                 if (entropyAfterSwap >= entropyBeforeSwap) {
@@ -60,12 +63,23 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     }
                     return false;
                 }
-                log.info("Swap is successful...");
+                log.info("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
                 return true;
-            } else {
-                log.info("Swap failed since available capacity was less");
+            } else if(bAddedToA){
                 nodeA.removePod(podB);
+                if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
+                    log.info("Swap reverted...");
+                }
+                return false;
+            } else if(aAddedToB){
                 nodeB.removePod(podA);
+                if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
+                    log.info("Swap reverted...");
+                }
+                return false;
+            }
+            else {
+                log.info("Swap failed since available capacity was less");
                 if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
                     log.info("Swap reverted...");
                 }
