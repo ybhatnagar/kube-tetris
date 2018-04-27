@@ -74,18 +74,20 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                         if (migrablePod != null) {
                             log.info("Place capacity {} on Node {} and Migrate pod {} to other Node", placeCapacity, node, migrablePod);
                             node.removePod(migrablePod);
-                            node.addPod(new Pod(migrablePod.getId(), migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
+                            node.addPod(new Pod(node.getPods().size()-1, migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
                                     .getCpuMillicore()));
-                            placeCapacity.setMemoryMB(migrablePod.getRequest().getMemoryMB());
-                            placeCapacity.setCpuMillicore(migrablePod.getRequest().getCpuMillicore());
-                            log.debug("Try placing {} capacity on {} nodes", placeCapacity, nodes);
-                            return placeCapacity(placeCapacity, nodes);
+                            Capacity mirateCapacity = new Capacity(migrablePod.getRequest().getMemoryMB(), migrablePod.getRequest().getCpuMillicore
+                                    ());
+                            log.debug("Try placing {} capacity on {} nodes", mirateCapacity, nodes);
+                            return placeCapacity(mirateCapacity, nodes);
                         } else {
                             log.debug("Failed to place {} on node {}", placeCapacity, node);
                         }
                     }
                 }
             }
+        } else {
+            return false;
         }
         return false;
     }
@@ -119,19 +121,18 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                         if (migrablePod != null) {
                             log.info("Place capacity {} on Node {} and Migrate pod {} to other Node", placeCapacity, node, migrablePod);
                             node.removePod(migrablePod);
-                            node.addPod(new Pod(migrablePod.getId(), migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
+                            node.addPod(new Pod(node.getPods().size()-1, migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
                                     .getCpuMillicore()));
-                            placeCapacity.setMemoryMB(migrablePod.getRequest().getMemoryMB());
-                            placeCapacity.setCpuMillicore(migrablePod.getRequest().getCpuMillicore());
-                            log.debug("Try placing {} capacity on {} nodes", placeCapacity, nodes);
-                            finalStatus = placeCapacityWithMultipleMigration(placeCapacity, nodes);
-                            return finalStatus;
+                            Capacity mirateCapacity = new Capacity(migrablePod.getRequest().getMemoryMB(), migrablePod.getRequest().getCpuMillicore
+                                    ());
+                            log.debug("Try placing {} capacity on {} nodes", mirateCapacity, nodes);
+                            return placeCapacityWithMultipleMigration(mirateCapacity, nodes);
+
                         } else {
                             log.debug("Failed to place {} on node {}", placeCapacity, node);
                         }
                     } else {
-                        List<Pod> multipleEligiblePods = computeMultipleEligiblePods(placeCapacity, requiredCapacity, new ArrayList<>(node.getPods()
-                                .values()));
+                        List<Pod> multipleEligiblePods = computeMultipleEligiblePods(placeCapacity, new ArrayList<>(node.getPods().values()));
                         log.debug("Multiple eligible pods for node {} and placement capacity {} is {}", node, placeCapacity, multipleEligiblePods);
                         List<Pod> migrablePods = computeMinimumMigrateablePods(multipleEligiblePods, placeCapacity, requiredCapacity);
                         if (migrablePods != null && !migrablePods.isEmpty()) {
@@ -157,6 +158,8 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                     }
                 }
             }
+        } else {
+            return false;
         }
         return finalStatus;
     }
@@ -188,21 +191,23 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
 
         long totalCpuMiliCore = computeTotalCpuMilicore(currentMinimum);
         long totalMemMB = computeTotalMemoryMB(currentMinimum);
-        if (requiredCapacity.getCpuMillicore() > 0 && totalCpuMiliCore >= requiredCapacity.getCpuMillicore()
-                && totalCpuMiliCore < placeCapacity.getCpuMillicore() && requiredCapacity.getMemoryMB() > 0
-                && totalMemMB >= requiredCapacity.getMemoryMB() && totalMemMB < placeCapacity.getMemoryMB()) {
-            List<Pod> currentMinimumSorted = sort(currentMinimum);
-            migrablePodsToSize.put(currentMinimumSorted, currentMinimum.size());
+        if (requiredCapacity.getCpuMillicore() > 0 && requiredCapacity.getMemoryMB() > 0) {
+            if (totalCpuMiliCore >= requiredCapacity.getCpuMillicore() && totalMemMB >= requiredCapacity.getMemoryMB()) {
+                List<Pod> currentMinimumSorted = sort(currentMinimum);
+                migrablePodsToSize.put(currentMinimumSorted, currentMinimum.size());
+            }
             return;
-        } else if (requiredCapacity.getCpuMillicore() > 0 && totalCpuMiliCore >= requiredCapacity.getCpuMillicore()
-                && totalCpuMiliCore < placeCapacity.getCpuMillicore() && totalMemMB < placeCapacity.getMemoryMB()) {
-            List<Pod> currentMinimumSorted = sort(currentMinimum);
-            migrablePodsToSize.put(currentMinimumSorted, currentMinimum.size());
+        } else if (requiredCapacity.getCpuMillicore() > 0 && requiredCapacity.getMemoryMB() < 0) {
+            if (totalCpuMiliCore >= requiredCapacity.getCpuMillicore()) {
+                List<Pod> currentMinimumSorted = sort(currentMinimum);
+                migrablePodsToSize.put(currentMinimumSorted, currentMinimum.size());
+            }
             return;
-        }  else if (requiredCapacity.getMemoryMB() > 0 && totalMemMB >= requiredCapacity.getMemoryMB() && totalMemMB < placeCapacity.getMemoryMB()
-                && totalCpuMiliCore < placeCapacity.getCpuMillicore()) {
-            List<Pod> currentMinimumSorted = sort(currentMinimum);
-            migrablePodsToSize.put(currentMinimumSorted, currentMinimum.size());
+        } else if (requiredCapacity.getMemoryMB() > 0 && requiredCapacity.getCpuMillicore() < 0) {
+            if (totalCpuMiliCore >= requiredCapacity.getCpuMillicore()) {
+                List<Pod> currentMinimumSorted = sort(currentMinimum);
+                migrablePodsToSize.put(currentMinimumSorted, currentMinimum.size());
+            }
             return;
         }
         for (int podId = 0; podId < multipleEligiblePods.size(); podId++) {
@@ -252,16 +257,11 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
-    private List<Pod> computeMultipleEligiblePods(Capacity placeCapacity, Capacity requiredCapacity, List<Pod> pods) {
+    private List<Pod> computeMultipleEligiblePods(Capacity placeCapacity, List<Pod> pods) {
         return pods.stream().map(pod -> {
             Capacity podRequestrequest = pod.getRequest();
-            if ((requiredCapacity.getMemoryMB() >= 0 && podRequestrequest.getMemoryMB() <= requiredCapacity.getMemoryMB()
-                    && (requiredCapacity.getCpuMillicore() >= 0 || podRequestrequest.getCpuMillicore() <= requiredCapacity.getCpuMillicore()))) {
-                return pod;
-            } else if ((requiredCapacity.getMemoryMB() < 0 && podRequestrequest.getMemoryMB() <= placeCapacity.getMemoryMB()
-                    && podRequestrequest.getCpuMillicore() <= placeCapacity.getCpuMillicore())
-                    || (requiredCapacity.getCpuMillicore() < 0 && podRequestrequest.getCpuMillicore() <= placeCapacity.getCpuMillicore()
-                    && podRequestrequest.getMemoryMB() <= placeCapacity.getCpuMillicore())) {
+            if (podRequestrequest.getMemoryMB() < placeCapacity.getMemoryMB()
+                    && podRequestrequest.getCpuMillicore() < placeCapacity.getCpuMillicore()) {
                 return pod;
             }
             return null;
