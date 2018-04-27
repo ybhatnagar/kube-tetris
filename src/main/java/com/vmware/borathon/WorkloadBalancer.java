@@ -1,86 +1,153 @@
 package com.vmware.borathon;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class WorkloadBalancer {
 
-    private List<Node> nodes;
+    private static final Logger log = LoggerFactory.getLogger(WorkloadBalancer.class);
 
     public static double pivotRatio;
     public static int ITERATIONS = 50;
     public static int currIterations = 1;
 
     private WorkloadBalancerUtil workloadBalancerUtil;
+    private MigrationController controller;
 
     public WorkloadBalancer(MigrationController controller){
         workloadBalancerUtil = new WorkloadBalancerUtil();
-        nodes = controller.getNodesSortedByRatio();
-        pivotRatio = workloadBalancerUtil.getPivotRatio(nodes);
+        this.controller = controller;
+        pivotRatio = workloadBalancerUtil.getPivotRatio(controller.getNodes());
     }
 
     // check if in the system all are on each side of pivot ratio
     public boolean isSchedulingDone(){
         List<Double> values = new ArrayList<>();
-        nodes.forEach(node ->{
+        controller.getNodes().forEach(node ->{
             values.add(pivotRatio - node.getAvailableCapacity().getCpuMemoryRatio());
         });
-        return values.stream().filter(Objects::nonNull).allMatch(i -> i < 0) || values.stream().filter(Objects::nonNull).allMatch(i -> i > 0);
+        boolean result = values.stream().filter(Objects::nonNull).allMatch(i -> i < 0) || values.stream().filter(Objects::nonNull).allMatch(i -> i > 0);
+
+        if(result){
+            log.info("all the nodes are on one side of thepivot ratio. No mode balancing of CPU/Memory possible");
+        }
+        return result;
     }
 
-    public boolean isSwappable(Node nodeA, Node nodeB, int podIdA, int podIdB ){
-        Capacity oldAvailableCapacityForA = nodeA.getAvailableCapacity();
-        Capacity oldAvailableCapacityForB = nodeB.getAvailableCapacity();
-        double entropyBeforeSwap = workloadBalancerUtil.getSystemEntropy(nodes, pivotRatio);
+    private boolean swapIfPossible(Node nodeA, Node nodeB, Pod podA, Pod podB ){
 
-        long cpuAvailableAfterPodAGone = nodeA.getAvailableCapacity().getCpuMillicore() + nodeA.getPods().get(podIdA).getRequest().getCpuMillicore();
-        long memAvailableAfterPodAGone = nodeA.getAvailableCapacity().getMemoryMB() + nodeA.getPods().get(podIdA).getRequest().getMemoryMB();
-
-        long cpuAvailableAfterPodBGone = nodeB.getAvailableCapacity().getCpuMillicore() + nodeB.getPods().get(podIdB).getRequest().getCpuMillicore();
-        long memAvailableAfterPodBGone = nodeB.getAvailableCapacity().getMemoryMB() + nodeB.getPods().get(podIdB).getRequest().getMemoryMB();
-
-
-        long cpuRequiredByPodIdB = nodeB.getPods().get(podIdB).getRequest().getCpuMillicore();
-        long memoryRequiredByPodIdB = nodeB.getPods().get(podIdB).getRequest().getMemoryMB();
-
-        long cpuRequiredByPodIdA = nodeA.getPods().get(podIdA).getRequest().getCpuMillicore();
-        long memoryRequiredByPodIdA = nodeA.getPods().get(podIdA).getRequest().getMemoryMB();
-
-
-        if(cpuAvailableAfterPodAGone < cpuRequiredByPodIdB || memAvailableAfterPodAGone < memoryRequiredByPodIdB)
-            return false; //pod B cannot fit at A
-        else if(cpuAvailableAfterPodBGone < cpuRequiredByPodIdA || memAvailableAfterPodBGone < memoryRequiredByPodIdA)
-            return false; //pod a cannot fit at B
-        else{
-            //change the memory and cpu after the swap
-            Capacity newAvailableCapacityForA = new Capacity(memAvailableAfterPodAGone-memoryRequiredByPodIdB,cpuAvailableAfterPodAGone - cpuRequiredByPodIdB);
-            Capacity newAvailableCapacityForB = new Capacity(memAvailableAfterPodBGone-memoryRequiredByPodIdA,cpuAvailableAfterPodBGone - cpuRequiredByPodIdA);
-
-            nodeA.setAvailableCapacity(newAvailableCapacityForA);
-            nodeB.setAvailableCapacity(newAvailableCapacityForB);
-
-            double entropyAfterSwap = workloadBalancerUtil.getSystemEntropy(nodes, pivotRatio);
-            if(entropyAfterSwap >= entropyBeforeSwap) {
-                //Revert swapping
-                nodeA.setAvailableCapacity(oldAvailableCapacityForA);
-                nodeB.setAvailableCapacity(oldAvailableCapacityForB);
+        double entropyBeforeSwap = workloadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+        double entropyAfterSwap;
+        if(nodeA.removePod(podA) && nodeB.removePod(podB)) {
+            if (nodeA.addPod(podB) && nodeB.addPod(podA)) {
+                //Swap is successful, check for entropy again
+                entropyAfterSwap = workloadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+                if (entropyAfterSwap >= entropyBeforeSwap) {
+                    //Revert swapping
+                    if (nodeA.removePod(podB) && nodeB.removePod(podA)) {
+                        if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
+                            log.info("Swap reverted since new entropy {} was greater than old {}", entropyAfterSwap, entropyBeforeSwap);
+                        } else {
+                            log.info("Swap revert failed do not proceed further and exit");
+                        }
+                    }
+                    return false;
+                }
+                log.info("Swap is successful...");
+                return true;
+            } else {
+                log.info("Swap failed since available capacity was less");
+                nodeA.removePod(podB);
+                nodeB.removePod(podA);
+                if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
+                    log.info("Swap reverted...");
+                }
                 return false;
             }
-            //TODO : pods ki adla badli karna hai satya bhejne se pehle
-            return true;
+        } else{
+            log.info("Should not have come here....pods removal failed!!");
+            return false;
         }
     }
+
+
 
     // actual scheduler
     public void schedule(){
         while (currIterations++ <= ITERATIONS && !isSchedulingDone()){
-            //sort first by mem and last by cpu
-            List<Pod> podsMemSorted = nodes.get(0).getPodsSortedByMem();
-            List<Pod> podsCpuSorted = nodes.get(nodes.size()-1).getPodsSortedByCpu();
+            log.info("This is the {} iteration" , currIterations);
 
-            isSwappable(nodes.get(0), nodes.get(nodes.size()-1), podsMemSorted.get(0).getId(), podsCpuSorted.get(0).getId());
+            List<Node> sortedNodes = controller.getNodesSortedByRatio();
+            controller.getNodesSortedByRatio();
+            int left=0,right = sortedNodes.size()-1;
 
+            double leftNodeDistance = workloadBalancerUtil.getDistanceFromPivot(sortedNodes.get(left), pivotRatio);
+            double rightNodeDistance = workloadBalancerUtil.getDistanceFromPivot(sortedNodes.get(right), pivotRatio);
+
+            while (sortedNodes.get(left).getAvailableCapacity().getCpuMemoryRatio() < pivotRatio && sortedNodes.get(right).getAvailableCapacity().getCpuMemoryRatio() > pivotRatio){
+
+                //sort first by mem and last by cpu
+                List<Pod> podsMemSorted = sortedNodes.get(left).getPodsSortedByMem();
+                List<Pod> podsCpuSorted = sortedNodes.get(right).getPodsSortedByCpu();
+
+                int leftPods = 0;
+                int rightPods = 0;
+
+                boolean isSwapped = false;
+                while(leftPods < podsCpuSorted.size() && rightPods < podsMemSorted.size()){
+
+                    isSwapped = swapIfPossible(sortedNodes.get(left), sortedNodes.get(right), podsMemSorted.get(0), podsCpuSorted.get(0));
+
+                    if(isSwapped){
+                        log.info("Swap done and entropy reduced to better value");
+                        break;
+                    } else{
+                        log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(0).getName(),podsMemSorted.get(0).getName(),sortedNodes.get(sortedNodes.size()-1).getName(),podsCpuSorted.get(0).getName());
+                        log.info("continuing with next");
+                    }
+
+                    if (leftNodeDistance < rightNodeDistance){
+                        if(leftPods<podsCpuSorted.size()-1){
+                            leftPods++;
+                        }else{
+                            leftPods=0;
+                            rightPods++;
+                        }
+                    }else{
+                        if(rightPods<podsMemSorted.size()-1){
+                            rightPods++;
+                        }else{
+                            rightPods=0;
+                            leftPods++;
+                        }
+                    }
+                }
+
+                if(isSwapped){
+                    break;
+                }
+
+                if(leftNodeDistance < rightNodeDistance){
+                    if(sortedNodes.get(left+1).getAvailableCapacity().getCpuMemoryRatio() < pivotRatio ){
+                        left++;
+                    }else{
+                        left=0;
+                        right--;
+                    }
+                }else{
+                    if(sortedNodes.get(right-1).getAvailableCapacity().getCpuMemoryRatio() > pivotRatio ){
+                        right--;
+                    }else{
+                        right=sortedNodes.size()-1;
+                        left++;
+                    }
+                }
+
+            }
         }
     }
 

@@ -11,7 +11,7 @@ public class WorkloadBalancerTest {
 
     @BeforeClass
     public void setup(){
-        MigrationController migrationController = new MigrationControllerImpl();
+        /*MigrationController migrationController = new MigrationControllerImpl();
         Node node1 = new Node("Node1",15, 4000);
         Node node2 = new Node("Node2",15, 4000);
         Node node3 = new Node("Node3",15, 4000);
@@ -28,7 +28,7 @@ public class WorkloadBalancerTest {
 
         node1.addPod(pod1);
         node1.addPod(pod2);
-        node1.addPod(pod3);
+        node1.addPod(pod3);*/
     }
 
     @Before
