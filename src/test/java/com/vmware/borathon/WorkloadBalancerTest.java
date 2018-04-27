@@ -21,7 +21,7 @@ public class WorkloadBalancerTest {
 
         //Create MigrationController and nodes and pods
         migrationController = new MigrationControllerImpl();
-        List<Node> inputNodes = NodeDataGenerator.generate(5, 300);
+        List<Node> inputNodes = NodeDataGenerator.generate(50, 20);
         inputNodes.forEach(node -> migrationController.addNode(node));
     }
 

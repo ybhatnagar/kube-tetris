@@ -6,7 +6,7 @@ import java.util.Random;
 
 public class NodeDataGenerator {
     static final long NODE_CPU_IN_MILI_CORE = 8000;
-    static final long NODE_MEMORY_IN_MB = 32000;
+    static final long NODE_MEMORY_IN_MB = 16000;
 
 
     public static List<Node> generate(int nodes, int podOnEachNode) {

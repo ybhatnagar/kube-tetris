@@ -67,6 +67,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     }
                     return false;
                 }
+                log.info("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA, podA, nodeB, podB);
                 log.info("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
                 return true;
             } else if(bAddedToA){
@@ -193,10 +194,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
         log.info("System entropy before balancing : {} ", entropyBeforeBalancing);
         double entropyAfterBalancing = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
         log.info("System entropy after balancing : {} ", entropyAfterBalancing);
-        log.info("Nodes information after balancing : ");
+        log.debug("Nodes information after balancing : ");
         controller.getNodes().forEach(n -> {
-            log.info("{}", n);
-            log.info("{}", n.getPods());
+            log.debug("{}", n);
+            log.debug("{}", n.getPods());
         });
     }
 }
