@@ -83,6 +83,9 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
     // actual scheduler
     public void balance(){
+        double entropyBeforeBalancing = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+        log.info("Nodes information before balancing : ");
+        log.info("{}", controller.getNodes());
         while (currIterations <= ITERATIONS && !isSchedulingDone()){
             log.info("This is the {} iteration" , currIterations);
 
@@ -111,7 +114,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                         log.info("Swap done and entropy reduced to better value");
                         break;
                     } else{
-                        log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(0).getName(),podsMemSorted.get(0).getName(),sortedNodes.get(sortedNodes.size()-1).getName(),podsCpuSorted.get(0).getName());
+                        log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(0), podsMemSorted.get(0), sortedNodes.get(sortedNodes.size()-1).getName(), podsCpuSorted.get(0).getName());
                         log.info("continuing with next");
                     }
 
@@ -155,5 +158,9 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             }
             currIterations++;
         }
+        log.info("System entropy before balancing : {} ", entropyBeforeBalancing);
+        log.info("System entropy after balancing : {} ", workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio));
+        log.info("Nodes information after balancing : ");
+        log.info("{}", controller.getNodes());
     }
 }
