@@ -5,8 +5,8 @@ import java.util.Map;
 
 public interface CapacityPlacementService {
     boolean checkPlacementElibility(Capacity placeCapacity, List<Node> nodes);
-    boolean placeCapacity(Capacity placeCapacity, List<Node> nodes);
-    boolean placeCapacityWithMultipleMigration(Capacity placeCapacity, List<Node> nodes);
-    Map<Pod, Node> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes);
+    boolean placeCapacity(Pod placePod, List<Node> nodes);
+    boolean placeCapacityWithMultipleMigration(Pod placePod, List<Node> nodes);
+    Map<Integer, Map<Pod, Integer>> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes);
     void initData();
 }

@@ -2,6 +2,7 @@ package com.vmware.borathon;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -36,19 +37,29 @@ public class CapacityPlacementServiceTest {
         List<Node> copyForSingleMigration = deepCopy(nodes);
         List<Node> copyForMultiMigration = deepCopy(nodes);
         capacityPlacementService.initData();
-        boolean placed = capacityPlacementService.placeCapacity(placeCapacity, copyForSingleMigration);
+        Pod placeCapacityPod = new Pod(-1,"wokload capacity", placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore());
+        boolean placed = capacityPlacementService.placeCapacity(placeCapacityPod, copyForSingleMigration);
         if(placed) {
             log.info("Capacity {} is placed by single migration", placeCapacity);
         } else {
             log.info("Capacity {} was not placed by single migration.. Attempting multinode Migration", placeCapacity);
             capacityPlacementService.initData();
-            placed = capacityPlacementService.placeCapacityWithMultipleMigration(placeCapacity, copyForMultiMigration);
+            placed = capacityPlacementService.placeCapacityWithMultipleMigration(placeCapacityPod, copyForMultiMigration);
             if(placed) {
                 log.info("Capacity {} is placed by multinode migration", placeCapacity);
             } else {
                 log.info("Failed to place capacity {} on any Node", placeCapacity);
             }
         }
+    }
+
+    @Test
+    public void testPlaceWorkload() throws Exception{
+        CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
+        Capacity placeCapacity = new Capacity(450, 350);
+        List<Node> nodes = migrationController.getNodes();
+        Map<Integer, Map<Pod, Integer>> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
+        log.info("Final result obtained : {}", placement);
     }
 
     private List<Node> deepCopy(List<Node> nodes) {
