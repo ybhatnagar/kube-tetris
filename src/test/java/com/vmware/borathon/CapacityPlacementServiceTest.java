@@ -30,7 +30,7 @@ public class CapacityPlacementServiceTest {
     @Test
     public void scenarioTest() throws Exception{
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
-        Capacity placeCapacity = new Capacity(650, 550);
+        Capacity placeCapacity = new Capacity(400, 300);
         boolean placed = false;
         if(placed) {
             log.info("Capacity {} is placed by single migration", placeCapacity);
