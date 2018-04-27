@@ -33,4 +33,30 @@ public class NodeDataGenerator {
         Random r = new Random();
         return r.nextInt(end-start) + start;
     }
+
+    public static List<Node> generateFixed() {
+        List<Node> kubeEnv = new ArrayList<>();
+        Node node = new Node(0, "first", 2100, 1100);
+        Pod pod1 = new Pod(0, "first_first", 200, 50);
+        Pod pod2 = new Pod(1, "first_second", 400, 250);
+        Pod pod3 = new Pod(2, "first_third", 700, 300);
+        Pod pod4 = new Pod(3, "first_fourth", 500, 300);
+        node.addPod(pod1); node.addPod(pod2); node.addPod(pod3); node.addPod(pod4);
+        kubeEnv.add(node);
+        node = new Node(1, "second", 2100, 1100);
+        pod1 = new Pod(0, "second_first", 100, 150);
+        pod2 = new Pod(1, "second_second", 500, 350);
+        pod3 = new Pod(2, "second_third", 600, 200);
+        pod4 = new Pod(3, "second_fourth", 650, 200);
+        node.addPod(pod1); node.addPod(pod2); node.addPod(pod3); node.addPod(pod4);
+        kubeEnv.add(node);
+        node = new Node(2, "third", 2100, 1100);
+        pod1 = new Pod(0, "third_first", 300, 150);
+        pod2 = new Pod(1, "third_second", 150, 200);
+        pod3 = new Pod(2, "third_third", 800, 300);
+        pod4 = new Pod(3, "third_fourth", 650, 250);
+        node.addPod(pod1); node.addPod(pod2); node.addPod(pod3); node.addPod(pod4);
+        kubeEnv.add(node);
+        return kubeEnv;
+    }
 }

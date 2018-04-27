@@ -2,10 +2,10 @@ package com.vmware.borathon;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.vmware.borathon.balancer.WorkLoadBalancer;
 import com.vmware.borathon.balancer.WorkLoadBalancerImpl;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Main {
