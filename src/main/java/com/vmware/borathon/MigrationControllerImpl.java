@@ -36,4 +36,15 @@ public class MigrationControllerImpl implements MigrationController{
                 .sorted(Comparator.comparingDouble(n -> n.getAvailableCapacity().getCpuMemoryRatio()))
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public double getPivotRatio(){
+        long totalAvailableCpu = 0, totalAvailableMem=0;
+
+        for(int i=0;i<nodes.size();i++){
+            totalAvailableCpu += nodes.get(i).getAvailableCapacity().getCpuMillicore();
+            totalAvailableMem += nodes.get(i).getAvailableCapacity().getMemoryMB();
+        }
+        return ((double)totalAvailableCpu/totalAvailableMem);
+    }
 }
