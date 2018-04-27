@@ -41,7 +41,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
         return result;
     }
 
-    private boolean swapIfPossible(Node nodeA, Node nodeB, Pod podA, Pod podB,double pivotRatio ){
+    private boolean swapIfPossible(Node nodeA, Node nodeB, Pod podA, Pod podB, double pivotRatio ){
 
         double entropyBeforeSwap = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
         double entropyAfterSwap;
@@ -91,7 +91,6 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             log.info("This is the {} iteration" , currIterations);
 
             List<Node> sortedNodes = controller.getNodesSortedByRatio();
-            controller.getNodesSortedByRatio();
             int left=0,right = sortedNodes.size()-1;
 
             double leftNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(left), pivotRatio);
@@ -109,13 +108,20 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                 boolean isSwapped = false;
                 while(leftPods < podsCpuSorted.size() && rightPods < podsMemSorted.size()){
 
+                    double pivotRatioBeforeSwap = controller.getPivotRatio();
                     isSwapped = swapIfPossible(sortedNodes.get(left), sortedNodes.get(right), podsMemSorted.get(0), podsCpuSorted.get(0),pivotRatio);
+                    double pivotRatioAfterSwap = controller.getPivotRatio();
 
                     if(isSwapped){
+                        if(pivotRatioAfterSwap > pivotRatioBeforeSwap)
+                            log.info("Killer bug After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
                         log.info("Swap done and entropy reduced to better value");
                         pivotRatio = controller.getPivotRatio();
                         break;
                     } else{
+                        if(pivotRatioAfterSwap > pivotRatioBeforeSwap)
+                            log.info("Killer bug else After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
+
                         log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(0), podsMemSorted.get(0), sortedNodes.get(sortedNodes.size()-1), podsCpuSorted.get(0));
                         log.info("continuing with next");
                     }
