@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class PodPlacementServiceImpl implements PodPlacementService {
+public class CapacityPlacementServiceImpl implements CapacityPlacementService {
 
     Map<List<Pod>, Integer> migrablePodsToSize = new HashMap<>();
 

@@ -1,4 +1,4 @@
-package com.vmware.borathon;
+package com.vmware.borathon.balancer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,25 +7,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class WorkloadBalancer {
+import com.vmware.borathon.MigrationController;
+import com.vmware.borathon.Node;
+import com.vmware.borathon.Pod;
 
-    private static final Logger log = LoggerFactory.getLogger(WorkloadBalancer.class);
+public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
-    public static double pivotRatio;
-    public static int ITERATIONS = 50;
-    public static int currIterations = 1;
+    private static final Logger log = LoggerFactory.getLogger(WorkLoadBalancerImpl.class);
 
-    private WorkloadBalancerUtil workloadBalancerUtil;
+    private static double pivotRatio;
+    private static int currIterations = 1;
+
+    private WorkLoadBalancerUtil workLoadBalancerUtil;
     private MigrationController controller;
+    private int ITERATIONS = 50;
 
-    public WorkloadBalancer(MigrationController controller){
-        workloadBalancerUtil = new WorkloadBalancerUtil();
+    public WorkLoadBalancerImpl(MigrationController controller, int iterations){
+        workLoadBalancerUtil = new WorkLoadBalancerUtil();
+        this.ITERATIONS = iterations;
         this.controller = controller;
-        pivotRatio = workloadBalancerUtil.getPivotRatio(controller.getNodes());
+        pivotRatio = workLoadBalancerUtil.getPivotRatio(controller.getNodes());
     }
 
     // check if in the system all are on each side of pivot ratio
-    public boolean isSchedulingDone(){
+    private boolean isSchedulingDone(){
         List<Double> values = new ArrayList<>();
         controller.getNodes().forEach(node ->{
             values.add(pivotRatio - node.getAvailableCapacity().getCpuMemoryRatio());
@@ -40,12 +45,12 @@ public class WorkloadBalancer {
 
     private boolean swapIfPossible(Node nodeA, Node nodeB, Pod podA, Pod podB ){
 
-        double entropyBeforeSwap = workloadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+        double entropyBeforeSwap = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
         double entropyAfterSwap;
         if(nodeA.removePod(podA) && nodeB.removePod(podB)) {
             if (nodeA.addPod(podB) && nodeB.addPod(podA)) {
                 //Swap is successful, check for entropy again
-                entropyAfterSwap = workloadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+                entropyAfterSwap = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
                 if (entropyAfterSwap >= entropyBeforeSwap) {
                     //Revert swapping
                     if (nodeA.removePod(podB) && nodeB.removePod(podA)) {
@@ -77,16 +82,16 @@ public class WorkloadBalancer {
 
 
     // actual scheduler
-    public void schedule(){
-        while (currIterations++ <= ITERATIONS && !isSchedulingDone()){
+    public void balance(){
+        while (currIterations <= ITERATIONS && !isSchedulingDone()){
             log.info("This is the {} iteration" , currIterations);
 
             List<Node> sortedNodes = controller.getNodesSortedByRatio();
             controller.getNodesSortedByRatio();
             int left=0,right = sortedNodes.size()-1;
 
-            double leftNodeDistance = workloadBalancerUtil.getDistanceFromPivot(sortedNodes.get(left), pivotRatio);
-            double rightNodeDistance = workloadBalancerUtil.getDistanceFromPivot(sortedNodes.get(right), pivotRatio);
+            double leftNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(left), pivotRatio);
+            double rightNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(right), pivotRatio);
 
             while (sortedNodes.get(left).getAvailableCapacity().getCpuMemoryRatio() < pivotRatio && sortedNodes.get(right).getAvailableCapacity().getCpuMemoryRatio() > pivotRatio){
 
@@ -148,7 +153,7 @@ public class WorkloadBalancer {
                 }
 
             }
+            currIterations++;
         }
     }
-
 }

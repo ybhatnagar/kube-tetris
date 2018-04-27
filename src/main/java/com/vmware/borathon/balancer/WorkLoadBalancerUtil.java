@@ -1,13 +1,15 @@
-package com.vmware.borathon;
+package com.vmware.borathon.balancer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class WorkloadBalancerUtil {
+import com.vmware.borathon.Node;
 
-    private static final Logger log = LoggerFactory.getLogger(WorkloadBalancerUtil.class);
+public class WorkLoadBalancerUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(WorkLoadBalancerUtil.class);
 
     public double getPivotRatio(List<Node> nodes){
         long totalAvailableCpu = 0, totalAvailableMem=0;
@@ -16,7 +18,7 @@ public class WorkloadBalancerUtil {
             totalAvailableCpu += nodes.get(i).getAvailableCapacity().getCpuMillicore();
             totalAvailableMem += nodes.get(i).getAvailableCapacity().getMemoryMB();
         }
-        return totalAvailableCpu/totalAvailableMem;
+        return ((double)totalAvailableCpu/totalAvailableMem);
     }
 
     public double getSystemEntropy(List<Node> nodes, double pivotRatio){
