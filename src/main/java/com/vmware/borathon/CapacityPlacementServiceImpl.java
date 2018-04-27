@@ -17,31 +17,14 @@ import lombok.extern.slf4j.Slf4j;
 public class CapacityPlacementServiceImpl implements CapacityPlacementService {
 
     private Map<List<Pod>, Integer> migrablePodsToSize = new HashMap<>();
-    private Map<Pod, Node> placePodToNode = new HashMap<>();
+    private Map<Integer, Map<Pod, Integer>> nodeIdToPodMigration = new HashMap<>();
     boolean finalStatus = false;
 
     @Override
     public void initData() {
         migrablePodsToSize = new HashMap<>();
-        placePodToNode = new HashMap<>();
+        nodeIdToPodMigration = new HashMap<>();
         finalStatus = false;
-    }
-
-    private static <K, V extends Comparable<V>> Map<K, V> sortByValues(final Map<K, V> map) {
-        Comparator<K> valueComparator = new Comparator<K>() {
-            public int compare(K k1, K k2) {
-                int compare =
-                        map.get(k1).compareTo(map.get(k2));
-                if (compare == 0)
-                    return 1;
-                else
-                    return compare;
-            }
-        };
-        Map<K, V> sortedByValues =
-                new TreeMap<K, V>(valueComparator);
-        sortedByValues.putAll(map);
-        return sortedByValues;
     }
 
     @Override
@@ -57,13 +40,17 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
     }
 
     @Override
-    public boolean placeCapacity(Capacity placeCapacity, List<Node> nodes) {
+    public boolean placeCapacity(Pod placePod, List<Node> nodes) {
+        Capacity placeCapacity = placePod.getRequest();
         if (checkPlacementElibility(placeCapacity, nodes)) {
             int directlyPlaceOn = computeNormalPlacement(placeCapacity, nodes);
             if (directlyPlaceOn >= 0) {
                 log.info("Capacity {} is directly placed on {} node", placeCapacity, nodes.get(directlyPlaceOn));
-                nodes.get(directlyPlaceOn).addPod(new Pod(nodes.get(directlyPlaceOn).getPods().size()-1, "Directly Placed",
-                        placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore()));
+                Node placedNode = nodes.get(directlyPlaceOn);
+                Pod placedPod = new Pod(placedNode.getPods().size()-1, "Directly Placed", placeCapacity.getMemoryMB(), placeCapacity
+                        .getCpuMillicore());
+                updateNodeAndPodMigration(placedPod, placedNode, 1);
+                placedNode.addPod(placedPod);
                 return true;
             } else {
                 //placementPriority stores the information about which node should be tried first
@@ -83,12 +70,13 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                         if (migrablePod != null) {
                             log.info("Place capacity {} on Node {} and Migrate pod {} to other Node", placeCapacity, node, migrablePod);
                             node.removePod(migrablePod);
-                            node.addPod(new Pod(node.getPods().size()-1, migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
-                                    .getCpuMillicore()));
-                            Capacity mirateCapacity = new Capacity(migrablePod.getRequest().getMemoryMB(), migrablePod.getRequest().getCpuMillicore
-                                    ());
-                            log.debug("Try placing {} capacity on {} nodes", mirateCapacity, nodes);
-                            return placeCapacity(mirateCapacity, nodes);
+                            updateNodeAndPodMigration(migrablePod, node, -1);
+                            placePod = new Pod(node.getPods().size()-1, migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
+                                    .getCpuMillicore());
+                            node.addPod(placePod);
+                            updateNodeAndPodMigration(placePod, node, 1);
+                            log.debug("Try placing {} pod on {} nodes", migrablePod, nodes);
+                            return placeCapacity(migrablePod, nodes);
                         } else {
                             log.debug("Failed to place {} on node {}", placeCapacity, node);
                         }
@@ -101,14 +89,29 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         return false;
     }
 
+    private void updateNodeAndPodMigration(Pod placedPod, Node placedNode, int placeOrDelete) {
+        Map<Pod, Integer> podPlacement = nodeIdToPodMigration.getOrDefault(placedNode.getId(), null);
+        if (podPlacement != null) {
+            podPlacement.put(placedPod, placeOrDelete);
+        } else {
+            podPlacement = new HashMap<>();
+            podPlacement.put(placedPod, placeOrDelete);
+        }
+        nodeIdToPodMigration.put(placedNode.getId(), podPlacement);
+    }
+
     @Override
-    public boolean placeCapacityWithMultipleMigration(Capacity placeCapacity, List<Node> nodes) {
+    public boolean placeCapacityWithMultipleMigration(Pod placePod, List<Node> nodes) {
+        Capacity placeCapacity = placePod.getRequest();
         if (checkPlacementElibility(placeCapacity, nodes)) {
             int directlyPlaceOn = computeNormalPlacement(placeCapacity, nodes);
             if (directlyPlaceOn >= 0) {
                 log.info("Capacity {} is directly placed on {} node", placeCapacity, nodes.get(directlyPlaceOn));
-                nodes.get(directlyPlaceOn).addPod(new Pod(nodes.get(directlyPlaceOn).getPods().size()-1, "Directly Placed",
-                        placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore()));
+                Node placeNode = nodes.get(directlyPlaceOn);
+                Pod placedPod = new Pod(nodes.get(directlyPlaceOn).getPods().size()-1, "Directly Placed",
+                        placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore());
+                placeNode.addPod(placedPod);
+                updateNodeAndPodMigration(placePod, placeNode, 1);
                 return true;
             } else {
                 //placementPriority stores the information about which node should be tried first
@@ -128,12 +131,13 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                         if (migrablePod != null) {
                             log.info("Place capacity {} on Node {} and Migrate pod {} to other Node", placeCapacity, node, migrablePod);
                             node.removePod(migrablePod);
-                            node.addPod(new Pod(node.getPods().size()-1, migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
-                                    .getCpuMillicore()));
-                            Capacity mirateCapacity = new Capacity(migrablePod.getRequest().getMemoryMB(), migrablePod.getRequest().getCpuMillicore
-                                    ());
-                            log.debug("Try placing {} capacity on {} nodes", mirateCapacity, nodes);
-                            return placeCapacityWithMultipleMigration(mirateCapacity, nodes);
+                            updateNodeAndPodMigration(migrablePod, node, -1);
+                            Pod placedPod = new Pod(node.getPods().size()-1, migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
+                                    .getCpuMillicore());
+                            node.addPod(placedPod);
+                            updateNodeAndPodMigration(placedPod, node, 1);
+                            log.debug("Try placing {} pod on {} nodes", migrablePod, nodes);
+                            return placeCapacityWithMultipleMigration(migrablePod, nodes);
 
                         } else {
                             log.debug("Failed to place {} on node {}", placeCapacity, node);
@@ -145,15 +149,17 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                         if (migrablePods != null && !migrablePods.isEmpty()) {
                             log.info("Place capacity {} on Node {} and Migrate pods {} to other Node", placeCapacity, node, migrablePods);
                             for(Pod pod : migrablePods) {
+                                updateNodeAndPodMigration(pod, node, -1);
                                 node.removePod(pod);
                             }
-                            node.addPod(new Pod(node.getPods().size()-1, "PlacedInMultinode", placeCapacity.getMemoryMB(), placeCapacity
-                                    .getCpuMillicore()));
+                            Pod placedPod = new Pod(node.getPods().size()-1, "PlacedInMultinode", placeCapacity.getMemoryMB(), placeCapacity
+                                    .getCpuMillicore());
+                            node.addPod(placedPod);
+                            updateNodeAndPodMigration(placedPod, node, 1);
                             for (Pod migrate : migrablePods) {
-                                Capacity migrateCapacity = new Capacity(migrate.getRequest().getMemoryMB(), migrate.getRequest().getCpuMillicore());
-                                finalStatus = placeCapacity(migrateCapacity, nodes);
+                                finalStatus = placeCapacity(migrate, nodes);
                                 if(!finalStatus) {
-                                    finalStatus = placeCapacityWithMultipleMigration(migrateCapacity, nodes);
+                                    finalStatus = placeCapacityWithMultipleMigration(migrate, nodes);
                                 } else {
                                     continue;
                                 }
@@ -172,21 +178,25 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
     }
 
     @Override
-    public Map<Pod, Node> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes) {
-//        boolean placed = placeCapacity(workloadCapacity, nodes);
-//        if(placed) {
-//            log.info("Capacity {} is placed by single migration", workloadCapacity);
-//            return placePodToNode;
-//        } else {
-//            log.info("Capacity {} was not placed by single migration.. Attempting multinode Migration", placeCapacity);
-//            placed = placeCapacityWithMultipleMigration(placeCapacity, migrationController.getNodes());
-//            if(placed) {
-//                log.info("Capacity {} is placed by multinode migration", placeCapacity);
-//            } else {
-//                log.info("Failed to place capacity {} on any Node", placeCapacity);
-//            }
-//        }
-        return null;
+    public Map<Integer, Map<Pod, Integer>> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes) {
+        List<Node> nodesForSingleMigration = deepCopy(nodes);
+        Pod placeCapacityPod = new Pod(-1,"wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore());
+        boolean placed = placeCapacity(placeCapacityPod, nodesForSingleMigration);
+        if(placed) {
+            log.info("Capacity {} is placed by single migration", workloadCapacity);
+            return nodeIdToPodMigration;
+        } else {
+            log.info("Capacity {} was not placed by single migration.. Attempting multinode Migration", workloadCapacity);
+            List<Node> nodesForMultiMigration = deepCopy(nodes);
+            placed = placeCapacityWithMultipleMigration(placeCapacityPod, nodesForMultiMigration);
+            if(placed) {
+                log.info("Capacity {} is placed by multinode migration", workloadCapacity);
+                return nodeIdToPodMigration;
+            } else {
+                log.info("Failed to place capacity {} on any Node", workloadCapacity);
+            }
+        }
+        return Collections.emptyMap();
     }
 
     private List<Pod> computeMinimumMigrateablePods(List<Pod> multipleEligiblePods, Capacity requiredCapacity) {
@@ -320,5 +330,28 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         Capacity availableCapacity = node.getAvailableCapacity();
         return new Capacity(placeCapacity.getMemoryMB() - availableCapacity.getMemoryMB(),
                 placeCapacity.getCpuMillicore() - availableCapacity.getCpuMillicore());
+    }
+
+    private List<Node> deepCopy(List<Node> nodes) {
+        List<Node> deepCopies = new ArrayList<>();
+        nodes.forEach(node -> deepCopies.add(node.clone()));
+        return deepCopies;
+    }
+
+    private static <K, V extends Comparable<V>> Map<K, V> sortByValues(final Map<K, V> map) {
+        Comparator<K> valueComparator = new Comparator<K>() {
+            public int compare(K k1, K k2) {
+                int compare =
+                        map.get(k1).compareTo(map.get(k2));
+                if (compare == 0)
+                    return 1;
+                else
+                    return compare;
+            }
+        };
+        Map<K, V> sortedByValues =
+                new TreeMap<K, V>(valueComparator);
+        sortedByValues.putAll(map);
+        return sortedByValues;
     }
 }
