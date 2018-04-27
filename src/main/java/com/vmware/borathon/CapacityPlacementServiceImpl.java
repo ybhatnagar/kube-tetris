@@ -168,10 +168,9 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         if(multipleEligiblePods==null || multipleEligiblePods.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Pod> firstPod = multipleEligiblePods.subList(0, 1);
+        Pod firstPod = multipleEligiblePods.get(0);
         CopyOnWriteArrayList currentMinimum = new CopyOnWriteArrayList();
-        currentMinimum.addAll(firstPod);
-        multipleEligiblePods.remove(firstPod.get(0));
+        currentMinimum.add(firstPod);
         computeMinimumMigrateablePods(multipleEligiblePods, placeCapacity, requiredCapacity, currentMinimum);
         return computeMinimumPods();
     }
@@ -210,7 +209,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
             }
             return;
         }
-        for (int podId = 0; podId < multipleEligiblePods.size(); podId++) {
+        for (int podId = 1; podId < multipleEligiblePods.size(); podId++) {
             Pod currentPod = multipleEligiblePods.get(podId);
             currentMinimum.add(currentPod);
             multipleEligiblePods.remove(currentPod);
@@ -249,8 +248,8 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
             Capacity podRequestrequest = pod.getRequest();
             if ((podRequestrequest.getMemoryMB() >= requiredCapacity.getMemoryMB()
                     && podRequestrequest.getCpuMillicore() >= requiredCapacity.getCpuMillicore())
-                    && (podRequestrequest.getMemoryMB() < placeCapacity.getMemoryMB()
-                    && podRequestrequest.getCpuMillicore() < placeCapacity.getCpuMillicore())) {
+                    && (podRequestrequest.getMemoryMB() <= placeCapacity.getMemoryMB()
+                    && podRequestrequest.getCpuMillicore() <= placeCapacity.getCpuMillicore())) {
                 return pod;
             }
             return null;
