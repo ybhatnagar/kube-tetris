@@ -14,7 +14,7 @@ public class NodeDataGenerator {
         for(int node=0; node < nodes; node++) {
             Node node1 = new Node(node, node+"", NODE_MEMORY_IN_MB, NODE_CPU_IN_MILI_CORE);
             for (int pod=0; pod < podOnEachNode; pod++) {
-                boolean added = node1.addPod(generatePod(pod));
+                boolean added = node1.addPod(generatePod(pod, node));
                 if (!added)
                     break;
             }
@@ -23,10 +23,10 @@ public class NodeDataGenerator {
         return kubeEnv;
     }
 
-    private static Pod generatePod(int podId) {
+    private static Pod generatePod(int podId, int prefix) {
         int cpuMiliCoreForPod = generateRandomIntBetween(1, 20) * 50;
         int memMB = generateRandomIntBetween(1, 20) * 100;
-        return new Pod(podId,podId+"" ,memMB, cpuMiliCoreForPod);
+        return new Pod(podId,prefix+"_"+podId ,memMB, cpuMiliCoreForPod);
     }
 
     private static int generateRandomIntBetween(int start, int end) {
