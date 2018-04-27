@@ -7,4 +7,5 @@ public interface MigrationController {
     void removeNode(Node node);
     List<Node> getNodes();
     List<Node> getNodesSortedByRatio();
+    double getPivotRatio();
 }
