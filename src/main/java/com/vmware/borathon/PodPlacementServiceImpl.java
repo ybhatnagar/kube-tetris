@@ -53,6 +53,8 @@ public class PodPlacementServiceImpl implements PodPlacementService {
             int directlyPlaceOn = computeNormalPlacement(placeCapacity, nodes);
             if (directlyPlaceOn >= 0) {
                 log.info("Capacity {} is directly placed on {} node", placeCapacity, nodes.get(directlyPlaceOn));
+                nodes.get(directlyPlaceOn).addPod(new Pod(nodes.get(directlyPlaceOn).getPods().size()-1, "Directly Placed",
+                        placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore()));
                 return true;
             } else {
                 //placementPriority stores the information about which node should be tried first
@@ -71,9 +73,9 @@ public class PodPlacementServiceImpl implements PodPlacementService {
                         Pod migrablePod = computeMinimumMigrateablePod(eligiblePods);
                         if (migrablePod != null) {
                             log.info("Place capacity {} on Node {} and Migrate pod {} to other Node", placeCapacity, node, migrablePod);
+                            node.removePod(migrablePod);
                             node.addPod(new Pod(migrablePod.getId(), migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
                                     .getCpuMillicore()));
-                            node.removePod(migrablePod);
                             placeCapacity.setMemoryMB(migrablePod.getRequest().getMemoryMB());
                             placeCapacity.setCpuMillicore(migrablePod.getRequest().getCpuMillicore());
                             log.debug("Try placing {} capacity on {} nodes", placeCapacity, nodes);
@@ -88,7 +90,7 @@ public class PodPlacementServiceImpl implements PodPlacementService {
         return false;
     }
 
-    boolean finalResult = false;
+    boolean finalStatus = false;
 
     @Override
     public boolean placeCapacityWithMultipleMigration(Capacity placeCapacity, List<Node> nodes) {
@@ -96,6 +98,8 @@ public class PodPlacementServiceImpl implements PodPlacementService {
             int directlyPlaceOn = computeNormalPlacement(placeCapacity, nodes);
             if (directlyPlaceOn >= 0) {
                 log.info("Capacity {} is directly placed on {} node", placeCapacity, nodes.get(directlyPlaceOn));
+                nodes.get(directlyPlaceOn).addPod(new Pod(nodes.get(directlyPlaceOn).getPods().size()-1, "Directly Placed",
+                        placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore()));
                 return true;
             } else {
                 //placementPriority stores the information about which node should be tried first
@@ -114,13 +118,14 @@ public class PodPlacementServiceImpl implements PodPlacementService {
                         Pod migrablePod = computeMinimumMigrateablePod(eligiblePods);
                         if (migrablePod != null) {
                             log.info("Place capacity {} on Node {} and Migrate pod {} to other Node", placeCapacity, node, migrablePod);
+                            node.removePod(migrablePod);
                             node.addPod(new Pod(migrablePod.getId(), migrablePod.getId() + "", placeCapacity.getMemoryMB(), placeCapacity
                                     .getCpuMillicore()));
-                            node.removePod(migrablePod);
                             placeCapacity.setMemoryMB(migrablePod.getRequest().getMemoryMB());
                             placeCapacity.setCpuMillicore(migrablePod.getRequest().getCpuMillicore());
                             log.debug("Try placing {} capacity on {} nodes", placeCapacity, nodes);
-                            return placeCapacityWithMultipleMigration(placeCapacity, nodes);
+                            finalStatus = placeCapacityWithMultipleMigration(placeCapacity, nodes);
+                            return finalStatus;
                         } else {
                             log.debug("Failed to place {} on node {}", placeCapacity, node);
                         }
@@ -131,11 +136,21 @@ public class PodPlacementServiceImpl implements PodPlacementService {
                         List<Pod> migrablePods = computeMinimumMigrateablePods(multipleEligiblePods, placeCapacity, requiredCapacity);
                         if (migrablePods != null && !migrablePods.isEmpty()) {
                             log.info("Place capacity {} on Node {} and Migrate pods {} to other Node", placeCapacity, node, migrablePods);
+                            for(Pod pod : migrablePods) {
+                                node.removePod(pod);
+                            }
+                            node.addPod(new Pod(node.getPods().size()-1, "PlacedInMultinode", placeCapacity.getMemoryMB(), placeCapacity
+                                    .getCpuMillicore()));
                             for (Pod migrate : migrablePods) {
                                 Capacity migrateCapacity = new Capacity(migrate.getRequest().getMemoryMB(), migrate.getRequest().getCpuMillicore());
-                                finalResult = finalResult || placeCapacity(migrateCapacity, nodes) || placeCapacityWithMultipleMigration
-                                        (migrateCapacity, nodes);
+                                finalStatus = placeCapacity(migrateCapacity, nodes);
+                                if(!finalStatus) {
+                                    finalStatus = placeCapacityWithMultipleMigration(migrateCapacity, nodes);
+                                } else {
+                                    continue;
+                                }
                             }
+                            return finalStatus;
                         }else {
                             log.debug("Failed to place {} on node {}", placeCapacity, node);
                         }
@@ -143,7 +158,7 @@ public class PodPlacementServiceImpl implements PodPlacementService {
                 }
             }
         }
-        return finalResult;
+        return finalStatus;
     }
 
     private List<Pod> computeMinimumMigrateablePods(List<Pod> multipleEligiblePods, Capacity placeCapacity, Capacity requiredCapacity) {
