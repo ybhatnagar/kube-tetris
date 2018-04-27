@@ -193,5 +193,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
         log.info("System entropy before balancing : {} ", entropyBeforeBalancing);
         double entropyAfterBalancing = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
         log.info("System entropy after balancing : {} ", entropyAfterBalancing);
+        log.info("Nodes information after balancing : ");
+        controller.getNodes().forEach(n -> {
+            log.info("{}", n);
+            log.info("{}", n.getPods());
+        });
     }
 }
