@@ -1,5 +1,6 @@
 package com.vmware.borathon;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
@@ -30,18 +31,29 @@ public class CapacityPlacementServiceTest {
     @Test
     public void scenarioTest() throws Exception{
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
-        Capacity placeCapacity = new Capacity(400, 300);
-        boolean placed = false;
+        Capacity placeCapacity = new Capacity(450, 350);
+        List<Node> nodes = migrationController.getNodes();
+        List<Node> copyForSingleMigration = deepCopy(nodes);
+        List<Node> copyForMultiMigration = deepCopy(nodes);
+        capacityPlacementService.initData();
+        boolean placed = capacityPlacementService.placeCapacity(placeCapacity, copyForSingleMigration);
         if(placed) {
             log.info("Capacity {} is placed by single migration", placeCapacity);
         } else {
             log.info("Capacity {} was not placed by single migration.. Attempting multinode Migration", placeCapacity);
-            placed = capacityPlacementService.placeCapacityWithMultipleMigration(placeCapacity, migrationController.getNodes());
+            capacityPlacementService.initData();
+            placed = capacityPlacementService.placeCapacityWithMultipleMigration(placeCapacity, copyForMultiMigration);
             if(placed) {
                 log.info("Capacity {} is placed by multinode migration", placeCapacity);
             } else {
                 log.info("Failed to place capacity {} on any Node", placeCapacity);
             }
         }
+    }
+
+    private List<Node> deepCopy(List<Node> nodes) {
+        List<Node> deepCopies = new ArrayList<>();
+        nodes.forEach(node -> deepCopies.add(node.clone()));
+        return deepCopies;
     }
 }

@@ -16,7 +16,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CapacityPlacementServiceImpl implements CapacityPlacementService {
 
-    Map<List<Pod>, Integer> migrablePodsToSize = new HashMap<>();
+    private Map<List<Pod>, Integer> migrablePodsToSize = new HashMap<>();
+    private Map<Pod, Node> placePodToNode = new HashMap<>();
+    boolean finalStatus = false;
+
+    @Override
+    public void initData() {
+        migrablePodsToSize = new HashMap<>();
+        placePodToNode = new HashMap<>();
+        finalStatus = false;
+    }
 
     private static <K, V extends Comparable<V>> Map<K, V> sortByValues(final Map<K, V> map) {
         Comparator<K> valueComparator = new Comparator<K>() {
@@ -92,8 +101,6 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         return false;
     }
 
-    boolean finalStatus = false;
-
     @Override
     public boolean placeCapacityWithMultipleMigration(Capacity placeCapacity, List<Node> nodes) {
         if (checkPlacementElibility(placeCapacity, nodes)) {
@@ -134,7 +141,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                     } else {
                         List<Pod> multipleEligiblePods = computeMultipleEligiblePods(placeCapacity, new ArrayList<>(node.getPods().values()));
                         log.debug("Multiple eligible pods for node {} and placement capacity {} is {}", node, placeCapacity, multipleEligiblePods);
-                        List<Pod> migrablePods = computeMinimumMigrateablePods(multipleEligiblePods, placeCapacity, requiredCapacity);
+                        List<Pod> migrablePods = computeMinimumMigrateablePods(multipleEligiblePods, requiredCapacity);
                         if (migrablePods != null && !migrablePods.isEmpty()) {
                             log.info("Place capacity {} on Node {} and Migrate pods {} to other Node", placeCapacity, node, migrablePods);
                             for(Pod pod : migrablePods) {
@@ -164,14 +171,32 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         return finalStatus;
     }
 
-    private List<Pod> computeMinimumMigrateablePods(List<Pod> multipleEligiblePods, Capacity placeCapacity, Capacity requiredCapacity) {
+    @Override
+    public Map<Pod, Node> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes) {
+//        boolean placed = placeCapacity(workloadCapacity, nodes);
+//        if(placed) {
+//            log.info("Capacity {} is placed by single migration", workloadCapacity);
+//            return placePodToNode;
+//        } else {
+//            log.info("Capacity {} was not placed by single migration.. Attempting multinode Migration", placeCapacity);
+//            placed = placeCapacityWithMultipleMigration(placeCapacity, migrationController.getNodes());
+//            if(placed) {
+//                log.info("Capacity {} is placed by multinode migration", placeCapacity);
+//            } else {
+//                log.info("Failed to place capacity {} on any Node", placeCapacity);
+//            }
+//        }
+        return null;
+    }
+
+    private List<Pod> computeMinimumMigrateablePods(List<Pod> multipleEligiblePods, Capacity requiredCapacity) {
         if(multipleEligiblePods==null || multipleEligiblePods.isEmpty()) {
             return Collections.emptyList();
         }
         Pod firstPod = multipleEligiblePods.get(0);
         CopyOnWriteArrayList currentMinimum = new CopyOnWriteArrayList();
         currentMinimum.add(firstPod);
-        computeMinimumMigrateablePods(multipleEligiblePods, placeCapacity, requiredCapacity, currentMinimum);
+        computeMinimumMigrateablePods(multipleEligiblePods, requiredCapacity, currentMinimum);
         return computeMinimumPods();
     }
 
@@ -185,7 +210,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         }
     }
 
-    private void computeMinimumMigrateablePods(List<Pod> multipleEligiblePods, Capacity placeCapacity, Capacity requiredCapacity,
+    private void computeMinimumMigrateablePods(List<Pod> multipleEligiblePods, Capacity requiredCapacity,
                                                CopyOnWriteArrayList<Pod> currentMinimum) {
 
         long totalCpuMiliCore = computeTotalCpuMilicore(currentMinimum);
@@ -217,7 +242,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
             if (migrablePodsToSize.containsKey(currentMinimumSorted)) {
                 return;
             }
-            computeMinimumMigrateablePods(multipleEligiblePods, placeCapacity, requiredCapacity, currentMinimum);
+            computeMinimumMigrateablePods(multipleEligiblePods, requiredCapacity, currentMinimum);
         }
     }
 
@@ -248,8 +273,8 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
             Capacity podRequestrequest = pod.getRequest();
             if ((podRequestrequest.getMemoryMB() >= requiredCapacity.getMemoryMB()
                     && podRequestrequest.getCpuMillicore() >= requiredCapacity.getCpuMillicore())
-                    && (podRequestrequest.getMemoryMB() <= placeCapacity.getMemoryMB()
-                    && podRequestrequest.getCpuMillicore() <= placeCapacity.getCpuMillicore())) {
+                    && (podRequestrequest.getMemoryMB() < placeCapacity.getMemoryMB()
+                    && podRequestrequest.getCpuMillicore() < placeCapacity.getCpuMillicore())) {
                 return pod;
             }
             return null;

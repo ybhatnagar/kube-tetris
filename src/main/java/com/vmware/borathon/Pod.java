@@ -38,4 +38,8 @@ public class Pod extends Resource {
                 ", name='" + this.getName() + '\'' +
                 '}';
     }
+
+    public Pod clone() {
+        return new Pod(this.getId(), this.getName(), this.getRequest().getMemoryMB(), this.getRequest().getCpuMillicore());
+    }
 }

@@ -90,4 +90,12 @@ public class Node extends Resource{
                 .collect(Collectors.toList());
 
     }
+
+    public Node clone() {
+       Node node = new Node(this.getId(), this.getName(),this.totalCapacity.getMemoryMB(), this.totalCapacity.getCpuMillicore());
+       this.getPods().forEach((integer, pod) -> {
+           node.addPod(pod.clone());
+       });
+       return node;
+    }
 }
