@@ -19,7 +19,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
     private WorkLoadBalancerUtil workLoadBalancerUtil;
     private MigrationController controller;
-    private int ITERATIONS = 50;
+    private int ITERATIONS;
 
     public WorkLoadBalancerImpl(MigrationController controller, int iterations){
         workLoadBalancerUtil = new WorkLoadBalancerUtil();
@@ -77,8 +77,6 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
         }
     }
 
-
-
     // actual scheduler
     public void balance(){
         double pivotRatio = controller.getPivotRatio();
@@ -91,6 +89,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             List<Node> sortedNodes = controller.getNodesSortedByRatio();
             int left=0,right = sortedNodes.size()-1;
 
+            //Recompute the distance for both the nodes because after swap pivotRatio might have changed
             double leftNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(left), pivotRatio);
             double rightNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(right), pivotRatio);
 
@@ -116,16 +115,12 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                         log.info("Swap done and entropy reduced to better value");
 
                         pivotRatio = controller.getPivotRatio();
-
-                        //Recompute the distance for both the nodes after swap because pivotRatio might have changed
-                        leftNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(left), pivotRatio);
-                        rightNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(right), pivotRatio);
                         break;
                     } else{
                         if(pivotRatioAfterSwap > pivotRatioBeforeSwap)
                             log.error("After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
 
-                        log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(0), podsMemSorted.get(0), sortedNodes.get(sortedNodes.size()-1), podsCpuSorted.get(0));
+                        log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(left), podsMemSorted.get(leftPods), sortedNodes.get(right), podsCpuSorted.get(rightPods));
                         log.info("continuing with next");
                     }
 
