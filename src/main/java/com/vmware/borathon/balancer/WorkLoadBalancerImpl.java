@@ -45,7 +45,11 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
         double entropyBeforeSwap = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
         double entropyAfterSwap;
-        if(nodeA.removePod(podA) && nodeB.removePod(podB)) {
+
+        boolean aRemovedFromA = nodeA.removePod(podA);
+        boolean bRemovedFromB = nodeB.removePod(podB);
+
+        if(aRemovedFromA && bRemovedFromB) {
             boolean bAddedToA = nodeA.addPod(podB);
             boolean aAddedToB = nodeB.addPod(podA);
 
@@ -85,6 +89,14 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                 }
                 return false;
             }
+        } else if(aRemovedFromA){
+            if(nodeA.addPod(podA))
+                log.info("Swap reverted...");
+            return false;
+        } else if(bRemovedFromB){
+            if(nodeB.addPod(podB))
+                log.info("Swap reverted...");
+            return false;
         } else{
             log.info("Should not have come here....pods removal failed!!");
             return false;
