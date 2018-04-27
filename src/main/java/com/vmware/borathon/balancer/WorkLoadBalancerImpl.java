@@ -113,6 +113,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
                     if(isSwapped){
                         log.info("Swap done and entropy reduced to better value");
+                        pivotRatio = controller.getPivotRatio();
                         break;
                     } else{
                         log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(0), podsMemSorted.get(0), sortedNodes.get(sortedNodes.size()-1), podsCpuSorted.get(0));
