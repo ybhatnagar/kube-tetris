@@ -83,8 +83,6 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
     public void balance(){
         double pivotRatio = controller.getPivotRatio();
         double entropyBeforeBalancing = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
-        log.info("Nodes information before balancing : ");
-        log.info("{}", controller.getNodes());
 
         while (currIterations <= ITERATIONS && !isSchedulingDone(pivotRatio)){
 
@@ -106,35 +104,40 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                 int rightPods = 0;
 
                 boolean isSwapped = false;
-                while(leftPods < podsCpuSorted.size() && rightPods < podsMemSorted.size()){
+                while(leftPods < podsMemSorted.size() && rightPods < podsCpuSorted.size()){
 
                     double pivotRatioBeforeSwap = controller.getPivotRatio();
-                    isSwapped = swapIfPossible(sortedNodes.get(left), sortedNodes.get(right), podsMemSorted.get(0), podsCpuSorted.get(0),pivotRatio);
+                    isSwapped = swapIfPossible(sortedNodes.get(left), sortedNodes.get(right), podsMemSorted.get(leftPods), podsCpuSorted.get(rightPods),pivotRatio);
                     double pivotRatioAfterSwap = controller.getPivotRatio();
 
                     if(isSwapped){
                         if(pivotRatioAfterSwap > pivotRatioBeforeSwap)
-                            log.info("Killer bug After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
+                            log.error("After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
                         log.info("Swap done and entropy reduced to better value");
+
                         pivotRatio = controller.getPivotRatio();
+
+                        //Recompute the distance for both the nodes after swap because pivotRatio might have changed
+                        leftNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(left), pivotRatio);
+                        rightNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(right), pivotRatio);
                         break;
                     } else{
                         if(pivotRatioAfterSwap > pivotRatioBeforeSwap)
-                            log.info("Killer bug else After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
+                            log.error("After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
 
                         log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(0), podsMemSorted.get(0), sortedNodes.get(sortedNodes.size()-1), podsCpuSorted.get(0));
                         log.info("continuing with next");
                     }
 
                     if (leftNodeDistance < rightNodeDistance){
-                        if(leftPods<podsCpuSorted.size()-1){
+                        if(leftPods<podsMemSorted.size()-1){
                             leftPods++;
                         }else{
                             leftPods=0;
                             rightPods++;
                         }
                     }else{
-                        if(rightPods<podsMemSorted.size()-1){
+                        if(rightPods<podsCpuSorted.size()-1){
                             rightPods++;
                         }else{
                             rightPods=0;
@@ -164,13 +167,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                 }
 
             }
-            pivotRatio = controller.getPivotRatio();
             currIterations++;
         }
         log.info("System entropy before balancing : {} ", entropyBeforeBalancing);
         double entropyAfterBalancing = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
         log.info("System entropy after balancing : {} ", entropyAfterBalancing);
-        log.info("Nodes information after balancing : ");
-        log.info("{}", controller.getNodes());
     }
 }

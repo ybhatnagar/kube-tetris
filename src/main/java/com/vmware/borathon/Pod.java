@@ -15,8 +15,6 @@ public class Pod extends Resource {
 
     private Node parentNode;
 
-    private String name;
-
     public Pod(int id, String name, long memoryMB, long cpuMillicore) {
         super(id, name);
         this.request = new Capacity(memoryMB, cpuMillicore);
@@ -28,6 +26,7 @@ public class Pod extends Resource {
     }
 
     public void leftNode(){
+        this.parentNode = null;
         log.debug("Pod {} left the Node {}", this, parentNode);
     }
 
@@ -35,8 +34,8 @@ public class Pod extends Resource {
     public String toString() {
         return "Pod{" +
                 "request=" + request +
-                ", parentNode=" + parentNode.getName() +
-                ", name='" + name + '\'' +
+                ", parentNode=" + (parentNode == null ? null:parentNode.getName()) +
+                ", name='" + this.getName() + '\'' +
                 '}';
     }
 }
