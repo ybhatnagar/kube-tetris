@@ -107,6 +107,11 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
     public void balance(){
         double pivotRatio = controller.getPivotRatio();
         double entropyBeforeBalancing = controller.getSystemEntropy();
+        log.debug("Nodes information before balancing : ");
+        controller.getNodes().forEach(n -> {
+            log.debug("{}", n);
+            log.debug("{}", n.getPods());
+        });
 
         while (currIterations <= ITERATIONS && !isSchedulingDone(pivotRatio)){
 
@@ -190,8 +195,8 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             }
             currIterations++;
         }
-        log.info("System entropy before balancing : {} ", entropyBeforeBalancing);
         double entropyAfterBalancing = controller.getSystemEntropy();
+        log.info("System entropy before  balancing : {} ", entropyBeforeBalancing);
         log.info("System entropy after  balancing : {} ", entropyAfterBalancing);
         log.debug("Nodes information after balancing : ");
         controller.getNodes().forEach(n -> {
