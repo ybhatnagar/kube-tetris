@@ -17,15 +17,15 @@ import com.vmware.borathon.scheduler.MigrationPlanDto;
 public class CapacityPlacementServiceTest {
     private static final Logger log = LoggerFactory.getLogger(CapacityPlacementServiceTest.class);
 
-    private static MigrationController migrationController;
+    private static SystemController systemController;
 
     @BeforeClass
     public static void setup(){
 
-        //Create MigrationController and nodes and pods
-        migrationController = new MigrationControllerImpl();
+        //Create SystemController and nodes and pods
+        systemController = new SystemControllerImpl();
         List<Node> inputNodes = NodeDataGenerator.generateFixed();
-        inputNodes.forEach(node -> migrationController.addNode(node));
+        inputNodes.forEach(node -> systemController.addNode(node));
     }
 
     @Before
@@ -37,7 +37,7 @@ public class CapacityPlacementServiceTest {
     public void scenarioTest() throws Exception{
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
         Capacity placeCapacity = new Capacity(450, 350);
-        List<Node> nodes = migrationController.getNodes();
+        List<Node> nodes = systemController.getNodes();
         List<Node> copyForSingleMigration = deepCopy(nodes);
         List<Node> copyForMultiMigration = deepCopy(nodes);
         capacityPlacementService.initData();
@@ -61,7 +61,7 @@ public class CapacityPlacementServiceTest {
     public void testPlaceWorkload() throws Exception{
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
         Capacity placeCapacity = new Capacity(500, 360);
-        List<Node> nodes = migrationController.getNodes();
+        List<Node> nodes = systemController.getNodes();
         List<MigrationPlanDto> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
         log.info("Final result obtained : {}", placement);
     }
