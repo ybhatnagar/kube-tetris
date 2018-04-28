@@ -17,8 +17,10 @@ dependencies {
     compile group: 'org.jboss.resteasy', name: 'resteasy-jackson-provider', version: '3.5.1.Final'
     //compile group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-json-provider', version: '2.9.5'
     compile group: 'org.jboss.resteasy', name: 'resteasy-client', version: '3.5.1.Final'
-
+    compile group: 'com.jayway.jsonpath', name: 'json-path', version: '2.4.0'
 
     //test related
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'com.blogspot.toomuchcoding', name: 'jsonassert', version: '0.1.2'
+
 }
