@@ -33,7 +33,7 @@ public class WorkloadBalancerTest {
 
     @Test
     public void scenarioTest() throws Exception{
-        WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(migrationController, 50);
+        WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(migrationController, 5);
         workLoadBalancer.balance();
     }
 }

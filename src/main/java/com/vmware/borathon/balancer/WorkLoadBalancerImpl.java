@@ -99,7 +99,6 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                 log.info("Swap reverted...");
             return false;
         } else{
-            log.info("Should not have come here....pods removal failed!!");
             return false;
         }
     }
