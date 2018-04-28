@@ -71,7 +71,7 @@ public class Node extends Resource{
     public String toString() {
         return "Node{" +
                 "name='" + this.getName() + '\'' +
-                ", totalCapacity=" + totalCapacity +
+//                ", totalCapacity=" + totalCapacity +
                 ", availableCapacity=" + availableCapacity +
                 '}';
     }

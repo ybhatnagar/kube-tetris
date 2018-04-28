@@ -2,7 +2,9 @@ package com.vmware.borathon.scheduler.helpers;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -15,6 +17,7 @@ import com.vmware.borathon.Capacity;
 import com.vmware.borathon.Node;
 import com.vmware.borathon.Pod;
 import com.vmware.borathon.cantor.PairDepair;
+import com.vmware.borathon.scheduler.MigrationPlanDto;
 
 @Slf4j
 public class CapacityPlacementServiceHelper {
@@ -122,5 +125,41 @@ public class CapacityPlacementServiceHelper {
         long totalAvailableCpu = nodes.stream().mapToLong(value -> value.getAvailableCapacity().getCpuMillicore()).sum();
         long totalAvailableMem = nodes.stream().mapToLong(value -> value.getAvailableCapacity().getMemoryMB()).sum();
         log.info("Overall Available capacity "+state+" placement : cpu : {}, memory : {}", totalAvailableCpu, totalAvailableMem);
+    }
+
+    public void addAddressToMigrationMoves(Map<Pod, List<Address>> migrationMoves, String from, String to, Pod pod) {
+        List<Address> addresses = migrationMoves.get(pod);
+        if (addresses != null) {
+            addresses.add(new Address(from, to));
+        } else {
+            addresses = new ArrayList<>();
+            addresses.add(new Address(from, to));
+        }
+        migrationMoves.put(pod, addresses);
+    }
+
+    public void addToMigrationPlans(List<MigrationPlanDto> migrationPlans, Map<Pod, List<Address>> migrationMoves) {
+        ListIterator<Pod> iterator = new ArrayList(migrationMoves.keySet()).listIterator(migrationMoves.size());
+        LinkedList<Pod> eligiblePodsForMigration = new LinkedList<>();
+        while (iterator.hasPrevious()) {
+            eligiblePodsForMigration.add(iterator.previous());
+        }
+        for (Pod key : eligiblePodsForMigration) {
+            List<Address> addresses = migrationMoves.get(key);
+            if (addresses != null && addresses.size() == 2) {
+                String from = addresses.get(0).getFrom() == null ? addresses.get(1).getFrom() : addresses.get(0).getFrom();
+                String to = addresses.get(0).getTo() == null ? addresses.get(1).getTo() : addresses.get(0).getTo();
+                migrationPlans.add(new MigrationPlanDto(key, from, to));
+                migrationMoves.remove(key);
+            }
+        }
+        if (migrationMoves != null && migrationMoves.size() == 1) {
+            List<Address> workloadAddress = migrationMoves.values().iterator().next();
+            Pod workload = migrationMoves.keySet().iterator().next();
+            if (workloadAddress != null && workloadAddress.size() == 1) {
+                migrationPlans.add(new MigrationPlanDto(workload, workloadAddress.get(0).getFrom(), workloadAddress.get(0).getTo()));
+                migrationMoves.remove(workload);
+            }
+        }
     }
 }

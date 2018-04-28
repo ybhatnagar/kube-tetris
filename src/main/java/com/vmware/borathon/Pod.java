@@ -33,6 +33,7 @@ public class Pod extends Resource {
     @Override
     public String toString() {
         return "Pod{" +
+                "id=" + getId() +
                 "request=" + request +
                 ", parentNode=" + (parentNode == null ? null:parentNode.getName()) +
                 ", name='" + this.getName() + '\'' +
