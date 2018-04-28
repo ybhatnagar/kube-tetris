@@ -10,6 +10,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.vmware.borathon.loadsimulator.NodeDataGenerator;
+import com.vmware.borathon.scheduler.CapacityPlacementService;
+import com.vmware.borathon.scheduler.CapacityPlacementServiceImpl;
+
 public class CapacityPlacementServiceTest {
     private static final Logger log = LoggerFactory.getLogger(CapacityPlacementServiceTest.class);
 

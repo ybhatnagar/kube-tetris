@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.vmware.borathon.balancer.WorkLoadBalancer;
 import com.vmware.borathon.balancer.WorkLoadBalancerImpl;
+import com.vmware.borathon.loadsimulator.NodeDataGenerator;
 
 @Slf4j
 public class Main {
@@ -14,10 +15,11 @@ public class Main {
         MigrationController migrationController = new MigrationControllerImpl();
         List<Node> inputNodes = NodeDataGenerator.generate(10, 300);
         inputNodes.forEach(node -> migrationController.addNode(node));
+        triggerWorkLoadBalancer(migrationController, 50);
     }
 
 
-    private void triggerWorkLoadBalancer(MigrationController migrationController, int iterations){
+    private static void triggerWorkLoadBalancer(MigrationController migrationController, int iterations){
         WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(migrationController, 50);
         workLoadBalancer.balance();
     }

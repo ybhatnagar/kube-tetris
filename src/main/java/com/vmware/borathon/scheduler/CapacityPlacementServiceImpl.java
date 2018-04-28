@@ -1,4 +1,4 @@
-package com.vmware.borathon;
+package com.vmware.borathon.scheduler;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,6 +12,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
+
+import com.vmware.borathon.Capacity;
+import com.vmware.borathon.Node;
+import com.vmware.borathon.cantor.PairDepair;
+import com.vmware.borathon.Pod;
 
 @Slf4j
 public class CapacityPlacementServiceImpl implements CapacityPlacementService {
@@ -257,7 +262,8 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
     }
 
     private List<Pod> sort(CopyOnWriteArrayList<Pod> currentMinimum) {
-        return currentMinimum.stream().sorted((o1, o2) -> (int)PairDepair.pair(o1.getRequest().getCpuMillicore(), o1.getRequest().getMemoryMB() -
+        return currentMinimum.stream().sorted((o1, o2) -> (int)PairDepair
+                .pair(o1.getRequest().getCpuMillicore(), o1.getRequest().getMemoryMB() -
                 PairDepair.pair(o2.getRequest().getCpuMillicore(), o2.getRequest().getMemoryMB()))).collect(Collectors.toList());
     }
 
@@ -339,15 +345,13 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
     }
 
     private static <K, V extends Comparable<V>> Map<K, V> sortByValues(final Map<K, V> map) {
-        Comparator<K> valueComparator = new Comparator<K>() {
-            public int compare(K k1, K k2) {
-                int compare =
-                        map.get(k1).compareTo(map.get(k2));
-                if (compare == 0)
-                    return 1;
-                else
-                    return compare;
-            }
+        Comparator<K> valueComparator = (k1, k2) -> {
+            int compare =
+                    map.get(k1).compareTo(map.get(k2));
+            if (compare == 0)
+                return 1;
+            else
+                return compare;
         };
         Map<K, V> sortedByValues =
                 new TreeMap<K, V>(valueComparator);
