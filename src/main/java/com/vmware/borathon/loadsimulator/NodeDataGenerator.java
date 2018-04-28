@@ -1,8 +1,11 @@
-package com.vmware.borathon;
+package com.vmware.borathon.loadsimulator;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import com.vmware.borathon.Node;
+import com.vmware.borathon.Pod;
 
 public class NodeDataGenerator {
     static final long NODE_CPU_IN_MILI_CORE = 8000;

@@ -1,7 +1,11 @@
-package com.vmware.borathon;
+package com.vmware.borathon.scheduler;
 
 import java.util.List;
 import java.util.Map;
+
+import com.vmware.borathon.Capacity;
+import com.vmware.borathon.Node;
+import com.vmware.borathon.Pod;
 
 public interface CapacityPlacementService {
     boolean checkPlacementElibility(Capacity placeCapacity, List<Node> nodes);

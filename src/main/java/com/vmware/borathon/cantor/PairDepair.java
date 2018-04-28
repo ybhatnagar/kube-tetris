@@ -1,4 +1,4 @@
-package com.vmware.borathon;
+package com.vmware.borathon.cantor;
 
 import java.util.Arrays;
 

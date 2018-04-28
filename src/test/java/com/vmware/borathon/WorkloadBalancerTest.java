@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vmware.borathon.balancer.WorkLoadBalancer;
 import com.vmware.borathon.balancer.WorkLoadBalancerImpl;
+import com.vmware.borathon.loadsimulator.NodeDataGenerator;
 
 public class WorkloadBalancerTest {
     private static final Logger log = LoggerFactory.getLogger(WorkloadBalancerTest.class);
