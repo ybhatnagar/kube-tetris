@@ -1,7 +1,6 @@
 package com.vmware.borathon.scheduler;
 
 import java.util.List;
-import java.util.Map;
 
 import com.vmware.borathon.Capacity;
 import com.vmware.borathon.Node;
@@ -11,6 +10,6 @@ public interface CapacityPlacementService {
     boolean checkPlacementElibility(Capacity placeCapacity, List<Node> nodes);
     boolean placeCapacity(Pod placePod, List<Node> nodes);
     boolean placeCapacityWithMultipleMigration(Pod placePod, List<Node> nodes);
-    Map<Integer, Map<Pod, Integer>> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes);
+    List<MigrationPlanDto> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes);
     void initData();
 }

@@ -13,7 +13,28 @@ import com.vmware.borathon.Pod;
 @Getter
 @Setter
 public class MigrationPlanDto {
-    Pod pod;
-    int fromNode;
-    int toNode;
+    private static int instanceCounter = 0;
+
+    private Pod pod;
+    private int fromNode;
+    private int toNode;
+    private int order;
+
+    public MigrationPlanDto(Pod pod, int fromNode, int toNode) {
+        this.pod = pod;
+        this.fromNode = fromNode;
+        this.toNode = toNode;
+        order = instanceCounter++;
+
+    }
+
+    @Override
+    public String toString() {
+        return "MigrationPlanDto{" +
+                "pod=" + pod +
+                ", fromNode=" + fromNode +
+                ", toNode=" + toNode +
+                ", order=" + order +
+                '}';
+    }
 }
