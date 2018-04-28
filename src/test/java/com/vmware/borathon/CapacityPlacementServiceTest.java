@@ -24,7 +24,7 @@ public class CapacityPlacementServiceTest {
 
         //Create MigrationController and nodes and pods
         migrationController = new MigrationControllerImpl();
-        List<Node> inputNodes = NodeDataGenerator.generateFixed();
+        List<Node> inputNodes = NodeDataGenerator.generate(3, 30);
         inputNodes.forEach(node -> migrationController.addNode(node));
     }
 
@@ -60,7 +60,7 @@ public class CapacityPlacementServiceTest {
     @Test
     public void testPlaceWorkload() throws Exception{
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
-        Capacity placeCapacity = new Capacity(500, 360);
+        Capacity placeCapacity = new Capacity(1000, 800);
         List<Node> nodes = migrationController.getNodes();
         Map<Integer, Map<Pod, Integer>> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
         log.info("Final result obtained : {}", placement);
