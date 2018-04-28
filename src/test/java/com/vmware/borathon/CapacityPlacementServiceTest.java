@@ -60,10 +60,12 @@ public class CapacityPlacementServiceTest {
     @Test
     public void testPlaceWorkload() throws Exception{
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
-        Capacity placeCapacity = new Capacity(450, 350);
+        Capacity placeCapacity = new Capacity(500, 360);
         List<Node> nodes = migrationController.getNodes();
         Map<Integer, Map<Pod, Integer>> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
         log.info("Final result obtained : {}", placement);
+
+
     }
 
     private List<Node> deepCopy(List<Node> nodes) {
