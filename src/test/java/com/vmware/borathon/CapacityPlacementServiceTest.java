@@ -2,7 +2,6 @@ package com.vmware.borathon;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -13,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.vmware.borathon.loadsimulator.NodeDataGenerator;
 import com.vmware.borathon.scheduler.CapacityPlacementService;
 import com.vmware.borathon.scheduler.CapacityPlacementServiceImpl;
+import com.vmware.borathon.scheduler.MigrationPlanDto;
 
 public class CapacityPlacementServiceTest {
     private static final Logger log = LoggerFactory.getLogger(CapacityPlacementServiceTest.class);
@@ -24,7 +24,7 @@ public class CapacityPlacementServiceTest {
 
         //Create MigrationController and nodes and pods
         migrationController = new MigrationControllerImpl();
-        List<Node> inputNodes = NodeDataGenerator.generate(3, 30);
+        List<Node> inputNodes = NodeDataGenerator.generateFixed();
         inputNodes.forEach(node -> migrationController.addNode(node));
     }
 
@@ -60,12 +60,10 @@ public class CapacityPlacementServiceTest {
     @Test
     public void testPlaceWorkload() throws Exception{
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
-        Capacity placeCapacity = new Capacity(1000, 800);
+        Capacity placeCapacity = new Capacity(500, 360);
         List<Node> nodes = migrationController.getNodes();
-        Map<Integer, Map<Pod, Integer>> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
+        List<MigrationPlanDto> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
         log.info("Final result obtained : {}", placement);
-
-
     }
 
     private List<Node> deepCopy(List<Node> nodes) {
