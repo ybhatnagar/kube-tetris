@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import com.vmware.borathon.MigrationController;
+import com.vmware.borathon.SystemController;
 import com.vmware.borathon.Node;
 import com.vmware.borathon.Pod;
 
@@ -18,10 +18,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
     private static int currIterations = 1;
 
     private WorkLoadBalancerUtil workLoadBalancerUtil;
-    private MigrationController controller;
+    private SystemController controller;
     private int ITERATIONS;
 
-    public WorkLoadBalancerImpl(MigrationController controller, int iterations){
+    public WorkLoadBalancerImpl(SystemController controller, int iterations){
         workLoadBalancerUtil = new WorkLoadBalancerUtil();
         this.ITERATIONS = iterations;
         this.controller = controller;
@@ -43,7 +43,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
     private boolean swapIfPossible(Node nodeA, Node nodeB, Pod podA, Pod podB, double pivotRatio ){
 
-        double entropyBeforeSwap = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+        double entropyBeforeSwap = controller.getSystemEntropy();
         double entropyAfterSwap;
 
         boolean aRemovedFromA = nodeA.removePod(podA);
@@ -55,7 +55,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
             if (bAddedToA && aAddedToB) {
                 //Swap is successful, check for entropy again
-                entropyAfterSwap = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+                entropyAfterSwap = controller.getSystemEntropy();
                 if (entropyAfterSwap >= entropyBeforeSwap) {
                     //Revert swapping
                     if (nodeA.removePod(podB) && nodeB.removePod(podA)) {
@@ -106,7 +106,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
     // actual scheduler
     public void balance(){
         double pivotRatio = controller.getPivotRatio();
-        double entropyBeforeBalancing = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+        double entropyBeforeBalancing = controller.getSystemEntropy();
 
         while (currIterations <= ITERATIONS && !isSchedulingDone(pivotRatio)){
 
@@ -191,7 +191,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             currIterations++;
         }
         log.info("System entropy before balancing : {} ", entropyBeforeBalancing);
-        double entropyAfterBalancing = workLoadBalancerUtil.getSystemEntropy(controller.getNodes(), pivotRatio);
+        double entropyAfterBalancing = controller.getSystemEntropy();
         log.info("System entropy after  balancing : {} ", entropyAfterBalancing);
         log.debug("Nodes information after balancing : ");
         controller.getNodes().forEach(n -> {

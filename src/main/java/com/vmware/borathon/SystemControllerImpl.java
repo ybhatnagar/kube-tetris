@@ -5,11 +5,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class MigrationControllerImpl implements MigrationController{
+public class SystemControllerImpl implements SystemController {
 
     private final List<Node> nodes;
 
-    public MigrationControllerImpl() {
+    public SystemControllerImpl() {
         this.nodes = new ArrayList<>();
     }
 
@@ -46,5 +46,14 @@ public class MigrationControllerImpl implements MigrationController{
             totalAvailableMem += nodes.get(i).getAvailableCapacity().getMemoryMB();
         }
         return ((double)totalAvailableCpu/totalAvailableMem);
+    }
+
+    @Override
+    public double getSystemEntropy(){
+        double sum = 0;
+        for (int i=0;i<nodes.size();i++){
+            sum += Math.abs(getPivotRatio() - nodes.get(i).getAvailableCapacity().getCpuMemoryRatio());
+        }
+        return sum;
     }
 }

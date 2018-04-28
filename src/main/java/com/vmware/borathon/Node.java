@@ -16,7 +16,7 @@ public class Node extends Resource{
 
     private static final Logger log = LoggerFactory.getLogger(Node.class);
 
-    private MigrationController migrationController;
+    private SystemController systemController;
 
     private static final long CPU_HEADROOM = 0;
     private static final long MEM_HEADROOM = 0;
@@ -58,8 +58,8 @@ public class Node extends Resource{
     }
 
 
-    public void joinedMigrationController(MigrationController migrationController){
-        this.migrationController = migrationController;
+    public void joinedMigrationController(SystemController systemController){
+        this.systemController = systemController;
         log.debug("{} joins the migration controller", this);
     }
 
