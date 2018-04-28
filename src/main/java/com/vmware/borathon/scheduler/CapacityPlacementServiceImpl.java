@@ -99,13 +99,13 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
             if (existingMigration != null) {
                 existingMigration.setFromNode(from.getId());
             } else {
-                existingMigration = new MigrationPlanDto(pod, from.getId(), -1);
+                existingMigration = new MigrationPlanDto(pod, from.getId(), "-1");
             }
         } else if (to != null) {
             if (existingMigration != null) {
                 existingMigration.setToNode(to.getId());
             } else {
-                existingMigration = new MigrationPlanDto(pod, -1, to.getId());
+                existingMigration = new MigrationPlanDto(pod, "-1", to.getId());
             }
         }
         migrationPlans.put(pod, existingMigration);
@@ -119,7 +119,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
             if (directlyPlaceOn >= 0) {
                 log.info("Capacity {} is directly placed on {} node", placeCapacity, nodes.get(directlyPlaceOn));
                 Node placeNode = nodes.get(directlyPlaceOn);
-                Pod placedPod = new Pod(nodes.get(directlyPlaceOn).getPods().size() - 1, "Directly Placed",
+                Pod placedPod = new Pod(nodes.get(directlyPlaceOn).getPods().size() - 1 + "", "Directly Placed",
                         placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore());
                 placeNode.addPod(placedPod);
                 updateNodeAndPodMigration(placePod, placeNode, null);
@@ -168,7 +168,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
     @Override
     public List<MigrationPlanDto> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes) {
         List<Node> nodesForSingleMigration = helper.deepCopy(nodes);
-        Pod placeCapacityPod = new Pod(-1, "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore());
+        Pod placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore());
         helper.printAvailableCapacity(nodes, "BEFORE");
         boolean placedSingle = placeCapacity(placeCapacityPod, nodesForSingleMigration);
         Map<Pod, MigrationPlanDto> singlePlacePlan = migrationPlans;

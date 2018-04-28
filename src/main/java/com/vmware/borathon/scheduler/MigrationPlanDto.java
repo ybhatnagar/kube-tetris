@@ -16,11 +16,11 @@ public class MigrationPlanDto {
     private static int instanceCounter = 0;
 
     private Pod pod;
-    private int fromNode;
-    private int toNode;
+    private String fromNode;
+    private String toNode;
     private int order;
 
-    public MigrationPlanDto(Pod pod, int fromNode, int toNode) {
+    public MigrationPlanDto(Pod pod, String fromNode, String toNode) {
         this.pod = pod;
         this.fromNode = fromNode;
         this.toNode = toNode;

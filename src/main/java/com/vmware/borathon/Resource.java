@@ -10,6 +10,6 @@ import lombok.ToString;
 @ToString
 @AllArgsConstructor
 public class Resource {
-    private int id;
+    private String id;
     private String name;
 }

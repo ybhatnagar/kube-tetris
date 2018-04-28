@@ -15,7 +15,7 @@ public class Pod extends Resource {
 
     private Node parentNode;
 
-    public Pod(int id, String name, long memoryMB, long cpuMillicore) {
+    public Pod(String id, String name, long memoryMB, long cpuMillicore) {
         super(id, name);
         this.request = new Capacity(memoryMB, cpuMillicore);
     }

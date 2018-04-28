@@ -1,8 +1,8 @@
 package com.vmware.borathon;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
@@ -21,17 +21,17 @@ public class Node extends Resource{
     private static final long CPU_HEADROOM = 0;
     private static final long MEM_HEADROOM = 0;
 
-    private Map<Integer,Pod> pods;
+    private Map<String,Pod> pods;
 
     private Capacity totalCapacity;
 
     private Capacity availableCapacity;
 
-    public Node(int id, String name, long memoryMB, long cpuMillicore) {
+    public Node(String id, String name, long memoryMB, long cpuMillicore) {
         super(id, name);
         this.totalCapacity = new Capacity(memoryMB, cpuMillicore);
         this.availableCapacity = new Capacity(memoryMB, cpuMillicore);
-        this.pods = new HashMap<>();
+        this.pods = new ConcurrentHashMap<>();
     }
 
     public boolean addPod(Pod pod) {
