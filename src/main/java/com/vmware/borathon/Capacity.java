@@ -17,6 +17,11 @@ public class Capacity {
     }
 
     public double getCpuMemoryRatio(){
-        return ((double)this.cpuMillicore/this.memoryMB);
+        if(Double.compare(this.memoryMB, 0.0) == 0)
+            return 1000000;
+        if(Double.compare(this.cpuMillicore, 0.0) == 0)
+            return 0.0;
+        else
+            return ((double)this.cpuMillicore/this.memoryMB);
     }
 }
