@@ -1,5 +1,7 @@
 package com.vmware.borathon.balancer;
 
+import com.vmware.borathon.interaction.KubernetesAccessor;
+import com.vmware.borathon.interaction.KubernetesAccessorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,12 +19,14 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
     private static int currIterations = 1;
 
+    private KubernetesAccessor kubernetesAccessor;
     private SystemController controller;
     private int ITERATIONS;
 
     public WorkLoadBalancerImpl(SystemController controller, int iterations){
         this.ITERATIONS = iterations;
         this.controller = controller;
+        this.kubernetesAccessor = new KubernetesAccessorImpl();
     }
 
     // check if in the system all are on each side of pivot ratio
@@ -65,6 +69,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     }
                     return false;
                 }
+                kubernetesAccessor.swapPods(podA.getName(), nodeA.getName(), podB.getName(), nodeB.getName() );
                 log.info("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA, podA, nodeB, podB);
                 log.info("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
                 return true;

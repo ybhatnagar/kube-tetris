@@ -98,6 +98,7 @@ public class Node extends Resource{
        this.getPods().forEach((integer, pod) -> {
            node.addPod(pod.clone());
        });
+       node.setAvailableCapacity(this.availableCapacity);
        return node;
     }
 

@@ -1,0 +1,74 @@
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "creationTimestamp": "2018-04-29T18:47:40Z",
+    "name": "frontend9",
+    "namespace": "default",
+    "selfLink": "/api/v1/namespaces/default/pods/frontend",
+    "uid": "cb503dc4-4bdd-11e8-98ba-12ea61ad52ba"
+  },
+  "spec": {
+    "containers": [
+      {
+        "env": [
+          {
+            "name": "MYSQL_ROOT_PASSWORD",
+            "value": "password"
+          }
+        ],
+        "image": "mysql",
+        "imagePullPolicy": "Always",
+        "name": "ngnix",
+        "resources": {
+          "requests": {
+            "cpu": "$CPUm",
+            "memory": "$MEMMi"
+          }
+        },
+        "terminationMessagePath": "/dev/termination-log",
+        "volumeMounts": [
+          {
+            "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+            "name": "default-token-l4qmt",
+            "readOnly": true
+          }
+        ]
+      },
+      {
+        "image": "wordpress",
+        "imagePullPolicy": "Always",
+        "name": "wp",
+        "resources": {
+          "requests": {
+            "cpu": "$CPUm",
+            "memory": "$MEMMi"
+          }
+        },
+        "terminationMessagePath": "/dev/termination-log",
+        "volumeMounts": [
+          {
+            "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+            "name": "default-token-l4qmt",
+            "readOnly": true
+          }
+        ]
+      }
+    ],
+    "dnsPolicy": "ClusterFirst",
+    "restartPolicy": "Always",
+    "securityContext": {},
+    "serviceAccount": "default",
+    "serviceAccountName": "default",
+    "terminationGracePeriodSeconds": 30,
+    "volumes": [
+      {
+        "name": "default-token-l4qmt",
+        "secret": {
+          "defaultMode": 420,
+          "secretName": "default-token-l4qmt"
+        }
+      }
+    ]
+  }
+}
