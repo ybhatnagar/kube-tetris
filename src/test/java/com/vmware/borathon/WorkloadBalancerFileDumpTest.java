@@ -16,11 +16,11 @@ import org.slf4j.LoggerFactory;
 
 import com.vmware.borathon.balancer.WorkLoadBalancer;
 import com.vmware.borathon.balancer.WorkLoadBalancerImpl;
-import com.vmware.borathon.balancer.WorkLoadBalancerUtil;
 import com.vmware.borathon.loadsimulator.NodeDataGenerator;
 
 @RunWith(Parameterized.class)
 public class WorkloadBalancerFileDumpTest {
+
     private static final Logger log = LoggerFactory.getLogger(WorkloadBalancerFileDumpTest.class);
 
     private static SystemController systemController;
@@ -28,8 +28,6 @@ public class WorkloadBalancerFileDumpTest {
     private static int iteration_count;
 
     private static BufferedWriter writer;
-
-    private static WorkLoadBalancerUtil workLoadBalancerUtil;
 
     private StringBuilder sb;
 
@@ -42,8 +40,7 @@ public class WorkloadBalancerFileDumpTest {
     public static void setup() throws IOException {
         writer = new BufferedWriter(new FileWriter("Validate_Algo.txt"));
         iteration_count = 0;
-        workLoadBalancerUtil = new WorkLoadBalancerUtil();
-        writer.write("Recording results...................\n");
+        writer.write("Recording results for validation for multiple runs...................\n");
     }
 
     @Before
@@ -51,9 +48,10 @@ public class WorkloadBalancerFileDumpTest {
         //Create SystemController and nodes and pods
         systemController = new SystemControllerImpl();
         List<Node> inputNodes = NodeDataGenerator.generate(3, 5);
-        inputNodes.forEach(node -> systemController.addNode(node));
+        for(Node node: inputNodes)
+            systemController.addNode(node);
         sb = new StringBuilder();
-        sb.append("===============================================================Iteration : ").append(iteration_count).append("==================================================================\n");
+        sb.append("===============================================================Test Run : ").append(iteration_count).append("==================================================================\n");
         sb.append("Nodes information before balancing with entropy : ").append(systemController.getSystemEntropy()).append("\n");
         systemController.getNodes().forEach(n -> {
             sb.append(n).append("\n");
@@ -75,10 +73,5 @@ public class WorkloadBalancerFileDumpTest {
         writer.append(sb.toString());
         sb.append("=======================================================================================================================================================================\n");
         ++iteration_count;
-    }
-
-    @After
-    public void increment() throws Exception{
-
     }
 }

@@ -6,14 +6,9 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.vmware.borathon.balancer.WorkLoadBalancer;
 import com.vmware.borathon.balancer.WorkLoadBalancerImpl;
-import com.vmware.borathon.balancer.WorkLoadBalancerUtil;
 import com.vmware.borathon.loadsimulator.NodeDataGenerator;
 
 public class WorkloadBalancerTest {

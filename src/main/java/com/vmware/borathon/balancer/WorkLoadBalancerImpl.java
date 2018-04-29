@@ -17,12 +17,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
     private static int currIterations = 1;
 
-    private WorkLoadBalancerUtil workLoadBalancerUtil;
     private SystemController controller;
     private int ITERATIONS;
 
     public WorkLoadBalancerImpl(SystemController controller, int iterations){
-        workLoadBalancerUtil = new WorkLoadBalancerUtil();
         this.ITERATIONS = iterations;
         this.controller = controller;
     }
@@ -67,7 +65,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     }
                     return false;
                 }
+                //Populate MigrationPlanDto here
                 log.info("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA, podA, nodeB, podB);
+
+
                 log.info("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
                 return true;
             } else if(bAddedToA){
@@ -121,8 +122,8 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             int left=0,right = sortedNodes.size()-1;
 
             //Recompute the distance for both the nodes because after swap pivotRatio might have changed
-            double leftNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(left), pivotRatio);
-            double rightNodeDistance = workLoadBalancerUtil.getDistanceFromPivot(sortedNodes.get(right), pivotRatio);
+            double leftNodeDistance = sortedNodes.get(left).getDistanceFromPivot(pivotRatio);
+            double rightNodeDistance = sortedNodes.get(right).getDistanceFromPivot(pivotRatio);
 
             while (sortedNodes.get(left).getAvailableCapacity().getCpuMemoryRatio() < pivotRatio && sortedNodes.get(right).getAvailableCapacity().getCpuMemoryRatio() > pivotRatio){
 

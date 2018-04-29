@@ -99,4 +99,8 @@ public class Node extends Resource{
        return node;
     }
 
+    public double getDistanceFromPivot(double pivotratio){
+        return Math.abs(pivotratio - this.getAvailableCapacity().getCpuMemoryRatio());
+    }
+
 }
