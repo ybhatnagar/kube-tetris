@@ -24,7 +24,7 @@ public class CapacityPlacementServiceTest {
 
         //Create SystemController and nodes and pods
         systemController = new SystemControllerImpl();
-        List<Node> inputNodes = NodeDataGenerator.generateFixed();
+        List<Node> inputNodes = NodeDataGenerator.generateFixedReal();
         inputNodes.forEach(node -> systemController.addNode(node));
     }
 

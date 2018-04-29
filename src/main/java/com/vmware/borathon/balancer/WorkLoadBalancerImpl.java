@@ -39,7 +39,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
         return result;
     }
 
-    private boolean swapIfPossible(Node nodeA, Node nodeB, Pod podA, Pod podB, double pivotRatio ){
+    private boolean swapIfPossible(Node nodeA, Node nodeB, Pod podA, Pod podB ){
 
         double entropyBeforeSwap = controller.getSystemEntropy();
         double entropyAfterSwap;
@@ -108,10 +108,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
     public void balance(){
         double pivotRatio = controller.getPivotRatio();
         double entropyBeforeBalancing = controller.getSystemEntropy();
-        log.debug("Nodes information before balancing : ");
+        log.info("Nodes information before balancing : ");
         controller.getNodes().forEach(n -> {
-            log.debug("{}", n);
-            log.debug("{}", n.getPods());
+            log.info("{}", n);
+            log.info("{}", n.getPods());
         });
 
         while (currIterations <= ITERATIONS && !isSchedulingDone(pivotRatio)){
@@ -127,18 +127,22 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
             while (sortedNodes.get(left).getAvailableCapacity().getCpuMemoryRatio() < pivotRatio && sortedNodes.get(right).getAvailableCapacity().getCpuMemoryRatio() > pivotRatio){
 
-                //sort first by mem and last by cpu
-                List<Pod> podsMemSorted = sortedNodes.get(left).getPodsSortedByMem();
-                List<Pod> podsCpuSorted = sortedNodes.get(right).getPodsSortedByCpu();
+                //Left side of pivot has cpu intensive pods so node has more memory available
+                // We will pick pod with max cpu for balancing
+                List<Pod> podsCpuSorted = sortedNodes.get(left).getPodsSortedByCpu();
+
+                //Right side of pivot has memory intensive pods so node has more cpu available
+                // We will pick pod with max memory for balancing
+                List<Pod> podsMemSorted = sortedNodes.get(right).getPodsSortedByMem();
 
                 int leftPods = 0;
                 int rightPods = 0;
 
                 boolean isSwapped = false;
-                while(leftPods < podsMemSorted.size() && rightPods < podsCpuSorted.size()){
+                while(leftPods < podsCpuSorted.size() && rightPods < podsMemSorted.size()){
 
                     double pivotRatioBeforeSwap = controller.getPivotRatio();
-                    isSwapped = swapIfPossible(sortedNodes.get(left), sortedNodes.get(right), podsMemSorted.get(leftPods), podsCpuSorted.get(rightPods),pivotRatio);
+                    isSwapped = swapIfPossible(sortedNodes.get(left), sortedNodes.get(right), podsCpuSorted.get(leftPods), podsMemSorted.get(rightPods));
                     double pivotRatioAfterSwap = controller.getPivotRatio();
 
                     if(isSwapped){
@@ -152,19 +156,19 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                         if(pivotRatioAfterSwap > pivotRatioBeforeSwap)
                             log.error("After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
 
-                        log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(left), podsMemSorted.get(leftPods), sortedNodes.get(right), podsCpuSorted.get(rightPods));
+                        log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(left), podsCpuSorted.get(leftPods), sortedNodes.get(right), podsMemSorted.get(rightPods));
                         log.info("continuing with next");
                     }
 
                     if (leftNodeDistance < rightNodeDistance){
-                        if(leftPods<podsMemSorted.size()-1){
+                        if(leftPods<podsCpuSorted.size()-1){
                             leftPods++;
                         }else{
                             leftPods=0;
                             rightPods++;
                         }
                     }else{
-                        if(rightPods<podsCpuSorted.size()-1){
+                        if(rightPods<podsMemSorted.size()-1){
                             rightPods++;
                         }else{
                             rightPods=0;
@@ -199,10 +203,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
         double entropyAfterBalancing = controller.getSystemEntropy();
         log.info("System entropy before  balancing : {} ", entropyBeforeBalancing);
         log.info("System entropy after  balancing : {} ", entropyAfterBalancing);
-        log.debug("Nodes information after balancing : ");
+        log.info("Nodes information after balancing : ");
         controller.getNodes().forEach(n -> {
-            log.debug("{}", n);
-            log.debug("{}", n.getPods());
+            log.info("{}", n);
+            log.info("{}", n.getPods());
         });
     }
 }

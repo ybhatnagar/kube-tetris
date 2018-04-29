@@ -34,7 +34,7 @@ public class Pod extends Resource {
     public String toString() {
         return "Pod{" +
                 "id=" + getId() +
-                "request=" + request +
+                ", request=" + request +
                 ", parentNode=" + (parentNode == null ? null:parentNode.getName()) +
                 ", name='" + this.getName() + '\'' +
                 '}';
