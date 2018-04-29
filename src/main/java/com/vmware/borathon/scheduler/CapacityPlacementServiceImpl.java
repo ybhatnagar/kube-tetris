@@ -56,7 +56,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
             if (directlyPlaceOn >= 0) {
                 log.info("Pod {} is directly placed on {} node", placePod, nodes.get(directlyPlaceOn));
                 Node placedNode = nodes.get(directlyPlaceOn);
-                helper.addAddressToMigrationMoves(migrationMoves, null,placedNode.getId(), placePod);
+                helper.addAddressToMigrationMoves(migrationMoves, null,placedNode.getName(), placePod);
                 helper.addToMigrationPlans(migrationPlans, migrationMoves);
                 placedNode.addPod(placePod);
                 return true;
@@ -78,8 +78,8 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                         if (migrablePod != null) {
                             log.info("Place Pod {} on Node {} and Migrate pod {} to other Node", placePod, node, migrablePod);
                             node.removePod(migrablePod);
-                            helper.addAddressToMigrationMoves(migrationMoves, node.getId(),null, migrablePod);
-                            helper.addAddressToMigrationMoves(migrationMoves, null,node.getId(), placePod);
+                            helper.addAddressToMigrationMoves(migrationMoves, node.getName(),null, migrablePod);
+                            helper.addAddressToMigrationMoves(migrationMoves, null,node.getName(), placePod);
                             node.addPod(placePod);
                             log.debug("Try placing {} pod on {} nodes", migrablePod, nodes);
                             return placeCapacity(migrablePod, nodes);
@@ -123,9 +123,9 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                         log.info("Place pod {} on Node {} and Migrate pods {} to other Node", placePod, node, migrablePods);
                         for (Pod pod : migrablePods) {
                             node.removePod(pod);
-                            helper.addAddressToMigrationMoves(migrationMoves, node.getId(),null, pod);
+                            helper.addAddressToMigrationMoves(migrationMoves, node.getName(),null, pod);
                         }
-                        helper.addAddressToMigrationMoves(migrationMoves, null,node.getId(), placePod);
+                        helper.addAddressToMigrationMoves(migrationMoves, null,node.getName(), placePod);
                         node.addPod(placePod);
                         for (Pod migrate : migrablePods) {
                             finalStatus = placeCapacity(migrate, nodes);
