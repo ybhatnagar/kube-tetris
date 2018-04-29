@@ -86,7 +86,8 @@ public class Main {
         }
         try {
             if(obj != null){
-                String jsonStr = obj.toString().replace("$CPU",""+(cpu/2)).replace("$MEM",""+(memoryMB)/2);
+                String podName = randomAlpha(10).toLowerCase();
+                String jsonStr = obj.toString().replace("$PODNAME", podName).replace("$CPU",""+(cpu/2)).replace("$MEM",""+(memoryMB)/2);
                 return (JSONObject) parser.parse(jsonStr);
             }
         } catch (ParseException e) {
@@ -94,5 +95,16 @@ public class Main {
             return null;
         }
         return null;
+    }
+
+    private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    private static String randomAlpha(int count) {
+        StringBuilder builder = new StringBuilder();
+        while (count-- != 0) {
+            int character = (int)(Math.random()*ALPHA_NUMERIC_STRING.length());
+            builder.append(ALPHA_NUMERIC_STRING.charAt(character));
+        }
+        return builder.toString();
     }
 }
