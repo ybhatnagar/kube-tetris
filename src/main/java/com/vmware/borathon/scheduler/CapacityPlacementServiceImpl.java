@@ -148,6 +148,17 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
 
     @Override
     public List<MigrationPlanDto> placeMyWorkload(Capacity workloadCapacity, List<Node> nodes) {
+        List<MigrationPlanDto> migrationPlans = Collections.emptyList();
+        try {
+            migrationPlans = placeWorkload(workloadCapacity, nodes);
+        } catch (Exception exp) {
+           log.error("Error in placing the workload capacity {} on nodes {} is exception {}", workloadCapacity, nodes, exp);
+           return migrationPlans;
+        }
+        return migrationPlans;
+    }
+
+    private List<MigrationPlanDto> placeWorkload(Capacity workloadCapacity, List<Node> nodes) {
         List<Node> nodesForSingleMigration = helper.deepCopy(nodes);
         Pod placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore());
         helper.printAvailableCapacity(nodes, "BEFORE");

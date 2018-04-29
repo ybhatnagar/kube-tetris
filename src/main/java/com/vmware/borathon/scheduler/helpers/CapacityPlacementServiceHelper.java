@@ -124,7 +124,7 @@ public class CapacityPlacementServiceHelper {
     public void printAvailableCapacity(List<Node> nodes, String state) {
         long totalAvailableCpu = nodes.stream().mapToLong(value -> value.getAvailableCapacity().getCpuMillicore()).sum();
         long totalAvailableMem = nodes.stream().mapToLong(value -> value.getAvailableCapacity().getMemoryMB()).sum();
-        log.info("Overall Available capacity "+state+" placement : cpu : {}, memory : {}", totalAvailableCpu, totalAvailableMem);
+        log.info("Overall Available capacity "+state+" placement : memory : {}, cpu : {}", totalAvailableMem, totalAvailableCpu);
     }
 
     public void addAddressToMigrationMoves(Map<Pod, List<Address>> migrationMoves, String from, String to, Pod pod) {
