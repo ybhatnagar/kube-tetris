@@ -32,16 +32,9 @@ public class WorkloadBalancerTest {
         inputNodes.forEach(node -> systemController.addNode(node));
     }
 
-    @Ignore
     @Test
     public void scenarioTest() throws Exception{
         WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(systemController, 5);
-        workLoadBalancer.balance();
-    }
-
-    @Test
-    public void realScenarioTest() throws Exception{
-        WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(systemController, 50);
         workLoadBalancer.balance();
     }
 }
