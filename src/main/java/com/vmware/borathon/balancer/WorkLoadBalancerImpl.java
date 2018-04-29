@@ -65,10 +65,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     }
                     return false;
                 }
-                //Populate MigrationPlanDto here
                 log.info("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA, podA, nodeB, podB);
-
-
                 log.info("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
                 return true;
             } else if(bAddedToA){
@@ -121,7 +118,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             List<Node> sortedNodes = controller.getNodesSortedByRatio();
             int left=0,right = sortedNodes.size()-1;
 
-            //Recompute the distance for both the nodes because after swap pivotRatio might have changed
+            //Recompute the distance for both the nodes because after swap available capacity might have changed
             double leftNodeDistance = sortedNodes.get(left).getDistanceFromPivot(pivotRatio);
             double rightNodeDistance = sortedNodes.get(right).getDistanceFromPivot(pivotRatio);
 
@@ -141,23 +138,12 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                 boolean isSwapped = false;
                 while(leftPods < podsCpuSorted.size() && rightPods < podsMemSorted.size()){
 
-                    double pivotRatioBeforeSwap = controller.getPivotRatio();
                     isSwapped = swapIfPossible(sortedNodes.get(left), sortedNodes.get(right), podsCpuSorted.get(leftPods), podsMemSorted.get(rightPods));
-                    double pivotRatioAfterSwap = controller.getPivotRatio();
 
                     if(isSwapped){
-                        if(pivotRatioAfterSwap > pivotRatioBeforeSwap)
-                            log.error("After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
-                        log.info("Swap done and entropy reduced to better value");
-
-                        pivotRatio = controller.getPivotRatio();
                         break;
                     } else{
-                        if(pivotRatioAfterSwap > pivotRatioBeforeSwap)
-                            log.error("After swap entropy should not be coming more, pivotRatioBeforeSwap:{}, pivotRatioAfterSwap:{}", pivotRatioBeforeSwap, pivotRatioAfterSwap);
-
                         log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(left), podsCpuSorted.get(leftPods), sortedNodes.get(right), podsMemSorted.get(rightPods));
-                        log.info("continuing with next");
                     }
 
                     if (leftNodeDistance < rightNodeDistance){
