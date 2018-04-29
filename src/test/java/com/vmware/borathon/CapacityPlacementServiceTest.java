@@ -41,7 +41,7 @@ public class CapacityPlacementServiceTest {
         List<Node> copyForSingleMigration = deepCopy(nodes);
         List<Node> copyForMultiMigration = deepCopy(nodes);
         capacityPlacementService.initData();
-        Pod placeCapacityPod = new Pod("-1","wokload capacity", placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore());
+        Pod placeCapacityPod = new Pod("-1","wokload capacity", placeCapacity.getMemoryMB(), placeCapacity.getCpuMillicore(),false);
         boolean placed = capacityPlacementService.placeCapacity(placeCapacityPod, copyForSingleMigration);
         if(placed) {
             log.info("Capacity {} is placed by single migration", placeCapacity);

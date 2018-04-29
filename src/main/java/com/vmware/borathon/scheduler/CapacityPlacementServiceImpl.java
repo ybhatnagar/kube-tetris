@@ -161,7 +161,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
 
     private List<MigrationPlanDto> placeWorkload(Capacity workloadCapacity, List<Node> nodes) {
         List<Node> nodesForSingleMigration = helper.deepCopy(nodes);
-        Pod placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore());
+        Pod placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore(),false);
         helper.printAvailableCapacity(nodes, "BEFORE");
         boolean placedSingle = placeCapacity(placeCapacityPod, nodesForSingleMigration);
         log.info("Single Node Migration status : {}\n", placedSingle);
@@ -169,7 +169,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         migrationPlans.forEach(migrationPlan -> singlePlacePlan.add(migrationPlan));
         List<Node> nodesForMultiMigration = helper.deepCopy(nodes);
         initData();
-        placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore());
+        placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore(),false);
         boolean placedMulti = placeCapacityWithMultipleMigration(placeCapacityPod, nodesForMultiMigration);
         log.info("Multi Node Migration status : {}", placedMulti);
         List<MigrationPlanDto> multiPlacePlan = migrationPlans;

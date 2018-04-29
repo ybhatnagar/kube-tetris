@@ -15,9 +15,12 @@ public class Pod extends Resource {
 
     private Node parentNode;
 
-    public Pod(String id, String name, long memoryMB, long cpuMillicore) {
+    boolean systemPod;
+
+    public Pod(String id, String name, long memoryMB, long cpuMillicore,boolean isSystem) {
         super(id, name);
         this.request = new Capacity(memoryMB, cpuMillicore);
+        systemPod=isSystem;
     }
 
     public void joinedNode(Node parentNode){
@@ -41,6 +44,6 @@ public class Pod extends Resource {
     }
 
     public Pod clone() {
-        return new Pod(this.getId(), this.getName(), this.getRequest().getMemoryMB(), this.getRequest().getCpuMillicore());
+        return new Pod(this.getId(), this.getName(), this.getRequest().getMemoryMB(), this.getRequest().getCpuMillicore(),this.systemPod);
     }
 }
