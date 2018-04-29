@@ -33,6 +33,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         migrationPlans = new LinkedList<>();
         migrationMoves = new LinkedHashMap<>();
         finalStatus = false;
+        helper = new CapacityPlacementServiceHelper();
     }
 
     @Override
@@ -163,9 +164,14 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         Pod placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore());
         helper.printAvailableCapacity(nodes, "BEFORE");
         boolean placedSingle = placeCapacity(placeCapacityPod, nodesForSingleMigration);
-        List<MigrationPlanDto> singlePlacePlan = migrationPlans;
+        log.info("Single Node Migration status : {}\n", placedSingle);
+        List<MigrationPlanDto> singlePlacePlan = new ArrayList<>();
+        migrationPlans.forEach(migrationPlan -> singlePlacePlan.add(migrationPlan));
         List<Node> nodesForMultiMigration = helper.deepCopy(nodes);
+        initData();
+        placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore());
         boolean placedMulti = placeCapacityWithMultipleMigration(placeCapacityPod, nodesForMultiMigration);
+        log.info("Multi Node Migration status : {}", placedMulti);
         List<MigrationPlanDto> multiPlacePlan = migrationPlans;
         if (placedSingle && placedMulti) {
             if (singlePlacePlan.size() >= multiPlacePlan.size()) {
