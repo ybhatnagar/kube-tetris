@@ -126,39 +126,42 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
         Integer i=0;
         JSONArray podsJson = (JSONArray) parsedJsonPods.get("items");
-        Iterator iterator = podsJson.iterator();
+        if(podsJson != null) {
+            Iterator iterator = podsJson.iterator();
 
-        List<Pod> pods = new ArrayList<>();
+            List<Pod> pods = new ArrayList<>();
 
-        while (iterator.hasNext()){
-            JSONObject result = (JSONObject) iterator.next();
-            String podName = (String) ((JSONObject)result.get("metadata")).get("name");
-            String nodeName = (String) ((JSONObject)result.get("spec")).get("nodeName");
+            while (iterator.hasNext()) {
+                JSONObject result = (JSONObject) iterator.next();
+                String podName = (String) ((JSONObject) result.get("metadata")).get("name");
+                String nodeName = (String) ((JSONObject) result.get("spec")).get("nodeName");
 
-            JSONArray containers = (JSONArray) ((JSONObject)result.get("spec")).get("containers");
-            Iterator<JSONObject> containerIterator = containers.iterator();
+                JSONArray containers = (JSONArray) ((JSONObject) result.get("spec")).get("containers");
+                Iterator<JSONObject> containerIterator = containers.iterator();
 
-            Long cpuRequests = 0L;
-            Long memRequests = 0L;
+                Long cpuRequests = 0L;
+                Long memRequests = 0L;
 
-            while(containerIterator.hasNext()){
-                JSONObject requests = (JSONObject)((JSONObject) containerIterator.next().get("resources")).get("requests");
-                cpuRequests += cpuUnitParser((String) requests.get("cpu"));
-                memRequests += memoryUnitParser((String) requests.get("memory"));
+                while (containerIterator.hasNext()) {
+                    JSONObject requests = (JSONObject) ((JSONObject) containerIterator.next().get("resources")).get("requests");
+                    cpuRequests += cpuUnitParser((String) requests.get("cpu"));
+                    memRequests += memoryUnitParser((String) requests.get("memory"));
+                }
+
+                Pod currentPod;
+                if (namespace.equals(KUBE_SYSTEM)) {
+                    currentPod = new Pod(i.toString(), podName, memRequests, cpuRequests, true);
+                } else {
+                    currentPod = new Pod(i.toString(), podName, memRequests, cpuRequests, false);
+                }
+
+                if (nodeName != null) {
+                    nodes.get(nodeName).addPod(currentPod);
+                }
+
+                i++;
             }
-
-            Pod currentPod;
-            if(namespace.equals(KUBE_SYSTEM)){
-                currentPod = new Pod(i.toString(),podName,memRequests,cpuRequests,true);
-            }else {
-                currentPod = new Pod(i.toString(),podName,memRequests,cpuRequests,false);
-            }
-
-            if(nodeName!=null){
-                nodes.get(nodeName).addPod(currentPod);
-            }
-
-            i++;
+            return nodes;
         }
         return nodes;
     }
