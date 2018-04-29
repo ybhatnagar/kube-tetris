@@ -3,7 +3,6 @@ package com.vmware.borathon.interaction;
 
 import com.vmware.borathon.Node;
 import com.vmware.borathon.Pod;
-import com.vmware.borathon.balancer.WorkLoadBalancerImpl;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -17,6 +16,7 @@ import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.json.simple.parser.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,12 +29,18 @@ import static javax.ws.rs.client.Entity.entity;
 public class KubernetesAccessor {
     private static final Logger log = LoggerFactory.getLogger(KubernetesAccessor.class);
 
-    private static final int TIMEOUT_MILLIS = 5000;
+    private static final int INTERVAL_TIME_MILLIS = 2000;
+    private static final int TIMEOUT = 60000;
+
+    private static final String KUBE_SYSTEM= "kube-system";
 
     private static final Client client = ClientBuilder.newClient();
     JSONParser parser = new JSONParser();
 
     private long memoryUnitParser(String toBeConverted){
+        if(toBeConverted==null){
+            return 50;
+        }
         if(toBeConverted.endsWith("Mi")){
             return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString());
         }
@@ -48,6 +54,9 @@ public class KubernetesAccessor {
     }
 
     private long cpuUnitParser(String toBeConverted){
+        if(toBeConverted==null){
+            return 50;
+        }
         if(toBeConverted.endsWith("m")){
             return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-1).toString());
         }
@@ -56,34 +65,19 @@ public class KubernetesAccessor {
         }
     }
 
-
-    public boolean getStatus(String podName) throws Exception{
-        WebTarget webTarget = client.target("http://localhost:8080/api/v1/namespaces/default/pods/" + podName);
-        Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-        Response response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
-
-        if(response.getStatus()==404){
-            return true;
-        }else{
-            log.info("pod is not ready");
-            return false;
-        }
-
+    public Collection<Node> getSystem() throws ParseException{
+        Map<String, Node> nodes = getNodesInSystem();
+        nodes = fillNodesWithPods("default",nodes); // default
+        nodes = fillNodesWithPods(KUBE_SYSTEM,nodes);
+        return nodes.values() ;
     }
-    public Collection<Node> getNodesWithPods() throws Exception {
 
-        WebTarget webTarget = client.target("http://localhost:8080/api/v1/namespaces/default/pods");
+    private Map<String, Node> getNodesInSystem() throws ParseException{
+
+        WebTarget webTarget = client.target("http://localhost:8080/api/v1/nodes");
         Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
         Response response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
-
-        // response body
         String responseAsString = response.readEntity(String.class);
-        JSONObject parsedJsonPods = (JSONObject) parser.parse(responseAsString);
-
-        webTarget = client.target("http://localhost:8080/api/v1/nodes");
-        invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-        response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
-        responseAsString = response.readEntity(String.class);
         JSONObject parsedJsonNodes = (JSONObject) parser.parse(responseAsString);
 
         Map<String,Node> nodes = new HashMap<>();
@@ -104,14 +98,39 @@ public class KubernetesAccessor {
             nodes.put(nodeName,new Node(i.toString(),nodeName,nodeMem,nodeCpu));
             i++;
         }
+        return nodes;
+    }
 
+    private boolean getStatus(String podName){
+        WebTarget webTarget = client.target("http://localhost:8080/api/v1/namespaces/default/pods/" + podName);
+        Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+        Response response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
 
+        if(response.getStatus()==404){
+            return true;
+        }else{
+            log.info("pod is not ready");
+            return false;
+        }
+
+    }
+
+    private Map<String, Node> fillNodesWithPods(String namespace,Map<String,Node> nodes) throws ParseException {
+
+        WebTarget webTarget = client.target("http://localhost:8080/api/v1/namespaces/" + namespace+ "/pods");
+        Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+        Response response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
+
+        // response body
+        String responseAsString = response.readEntity(String.class);
+        JSONObject parsedJsonPods = (JSONObject) parser.parse(responseAsString);
+
+        Integer i=0;
         JSONArray podsJson = (JSONArray) parsedJsonPods.get("items");
-        iterator = podsJson.iterator();
+        Iterator iterator = podsJson.iterator();
 
         List<Pod> pods = new ArrayList<>();
 
-        i=0;
         while (iterator.hasNext()){
             JSONObject result = (JSONObject) iterator.next();
             String podName = (String) ((JSONObject)result.get("metadata")).get("name");
@@ -129,15 +148,23 @@ public class KubernetesAccessor {
                 memRequests += memoryUnitParser((String) requests.get("memory"));
             }
 
-            Pod currentPod = new Pod(i.toString(),podName,memRequests,cpuRequests);
-            pods.add(currentPod);
-            nodes.get(nodeName).addPod(currentPod);
+            Pod currentPod;
+            if(namespace.equals(KUBE_SYSTEM)){
+                currentPod = new Pod(i.toString(),podName,memRequests,cpuRequests,true);
+            }else {
+                currentPod = new Pod(i.toString(),podName,memRequests,cpuRequests,false);
+            }
+
+            if(nodeName!=null){
+                nodes.get(nodeName).addPod(currentPod);
+            }
+
             i++;
         }
-        return nodes.values();
+        return nodes;
     }
 
-    public void migratePod(Pod toremove, Node toPlace) throws Exception{
+    public void migratePod(Pod toremove, Node toPlace) throws IllegalStateException, ParseException,InterruptedException{
         //delete resourceversion in metadata, and nodeName from spec from the get response of pod
         //appeind annotations in metadata with this value:
         //
@@ -175,13 +202,19 @@ public class KubernetesAccessor {
         invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
         response = invocationBuilder.method(HttpMethod.DELETE, null, Response.class);
 
+        int timeout=TIMEOUT;
         if(response.getStatus()==200){
-            Thread.sleep(TIMEOUT_MILLIS);
+            Thread.sleep(INTERVAL_TIME_MILLIS);
             log.info("Pod {} deleted from node {}", podName,originalNodeName);
 
-            while (!getStatus(podName)) {
-                log.info("delete operation not yet completed");
-                Thread.sleep(TIMEOUT_MILLIS);
+            while (timeout>=0 && !getStatus(podName)) {
+                log.info("delete operation not yet completed, sleeping for {} milliseconds",INTERVAL_TIME_MILLIS);
+                Thread.sleep(INTERVAL_TIME_MILLIS);
+                timeout-=INTERVAL_TIME_MILLIS;
+            }
+            if(timeout<=0){
+                log.error("delete timeout, Inconsistent state!!!! please revert the changes done till now, from the stack");
+                throw new IllegalStateException("System is in inconsistent state, halting now.");
             }
 
             response = client.target("http://localhost:8080/api/v1/namespaces/default/pods/")
@@ -190,12 +223,19 @@ public class KubernetesAccessor {
             response.getStatus();
 
             if(response.getStatus()>=200 && response.getStatus()<400 ){
-                Thread.sleep(TIMEOUT_MILLIS);
+                Thread.sleep(INTERVAL_TIME_MILLIS);
 
-                while (getStatus(podName)) {
-                    log.info("create operation not yet completed");
-                    Thread.sleep(TIMEOUT_MILLIS);
+                timeout=INTERVAL_TIME_MILLIS;
+                while (timeout>=0 && getStatus(podName)) {
+                    log.info("create operation not yet completed,sleeping for {} milliseconds", INTERVAL_TIME_MILLIS);
+                    Thread.sleep(INTERVAL_TIME_MILLIS);
+                    timeout -= timeout - INTERVAL_TIME_MILLIS;
                 }
+                if(timeout <=0){
+                    log.error("create pod in new node timed out, Inconsistent state!!!! please revert the changes done till now, from the stack");
+                    throw new IllegalStateException("System is in inconsistent state, halting now.");
+                }
+
                 webTarget = client.target("http://localhost:8080/api/v1/namespaces/default/pods/"+podName);
                 invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
                 response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
@@ -206,6 +246,7 @@ public class KubernetesAccessor {
             }
         }else{
             log.error("pod delete failed from original node. Stopping");
+            throw new IllegalStateException("Pod delete failed from original pod.");
         }
 
 

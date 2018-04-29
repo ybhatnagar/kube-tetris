@@ -39,7 +39,9 @@ public class Node extends Resource{
                 && (availableCapacity.getCpuMillicore() - CPU_HEADROOM) >= pod.getRequest().getCpuMillicore()) {
             availableCapacity.setMemoryMB(availableCapacity.getMemoryMB() - pod.getRequest().getMemoryMB());
             availableCapacity.setCpuMillicore(availableCapacity.getCpuMillicore() - pod.getRequest().getCpuMillicore());
-            pods.put(pod.getId(),pod);
+            if(!pod.isSystemPod()){
+                pods.put(pod.getId(),pod);
+            }
             pod.joinedNode(this);
             return true;
         }
