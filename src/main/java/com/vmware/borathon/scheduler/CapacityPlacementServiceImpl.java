@@ -54,7 +54,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         if (checkPlacementElibility(placeCapacity, nodes)) {
             int directlyPlaceOn = helper.computeNormalPlacement(placeCapacity, nodes);
             if (directlyPlaceOn >= 0) {
-                log.info("Pod {} is directly placed on {} node", placePod, nodes.get(directlyPlaceOn));
+                log.debug("Pod {} is directly placed on {} node", placePod, nodes.get(directlyPlaceOn));
                 Node placedNode = nodes.get(directlyPlaceOn);
                 helper.addAddressToMigrationMoves(migrationMoves, null,placedNode.getName(), placePod);
                 helper.addToMigrationPlans(migrationPlans, migrationMoves);
@@ -76,7 +76,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                         log.debug("Eligible pods on node {} are {}", node, eligiblePods);
                         Pod migrablePod = helper.computeMinimumMigrateablePod(eligiblePods);
                         if (migrablePod != null) {
-                            log.info("Place Pod {} on Node {} and Migrate pod {} to other Node", placePod, node, migrablePod);
+                            log.debug("Place Pod {} on Node {} and Migrate pod {} to other Node", placePod, node, migrablePod);
                             node.removePod(migrablePod);
                             helper.addAddressToMigrationMoves(migrationMoves, node.getName(),null, migrablePod);
                             helper.addAddressToMigrationMoves(migrationMoves, null,node.getName(), placePod);
@@ -101,7 +101,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         if (checkPlacementElibility(placeCapacity, nodes)) {
             int directlyPlaceOn = helper.computeNormalPlacement(placeCapacity, nodes);
             if (directlyPlaceOn >= 0) {
-                log.info("Pod {} is directly placed on {} node", placePod, nodes.get(directlyPlaceOn));
+                log.debug("Pod {} is directly placed on {} node", placePod, nodes.get(directlyPlaceOn));
                 Node placeNode = nodes.get(directlyPlaceOn);
                 helper.addToMigrationPlans(migrationPlans, migrationMoves);
                 placeNode.addPod(placePod);
@@ -120,7 +120,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                     log.debug("Multiple removable pods on node {} for placement of pod {} is {}", node, placePod, multipleEligiblePods);
                     List<Pod> migrablePods = computeMinimumMigrateablePods(multipleEligiblePods, requiredCapacity);
                     if (migrablePods != null && !migrablePods.isEmpty()) {
-                        log.info("Place pod {} on Node {} and Migrate pods {} to other Node", placePod, node, migrablePods);
+                        log.debug("Place pod {} on Node {} and Migrate pods {} to other Node", placePod, node, migrablePods);
                         for (Pod pod : migrablePods) {
                             node.removePod(pod);
                             helper.addAddressToMigrationMoves(migrationMoves, node.getName(),null, pod);
@@ -152,6 +152,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
         List<MigrationPlanDto> migrationPlans = Collections.emptyList();
         try {
             migrationPlans = placeWorkload(workloadCapacity, nodes);
+            helper.printMigrationPlan(migrationPlans);
         } catch (Exception exp) {
            log.error("Error in placing the workload capacity {} on nodes {} is exception {}", workloadCapacity, nodes, exp);
            return migrationPlans;
@@ -162,37 +163,42 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
     private List<MigrationPlanDto> placeWorkload(Capacity workloadCapacity, List<Node> nodes) {
         List<Node> nodesForSingleMigration = helper.deepCopy(nodes);
         Pod placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore(),false);
+        System.out.print("\n\n******************* Workload Placement Status ********************\n\n");
         helper.printAvailableCapacity(nodes, "BEFORE");
         boolean placedSingle = placeCapacity(placeCapacityPod, nodesForSingleMigration);
-        log.info("Single Node Migration status : {}\n", placedSingle);
+        log.debug("Single Node Migration status : {}\n", placedSingle);
         List<MigrationPlanDto> singlePlacePlan = new ArrayList<>();
         migrationPlans.forEach(migrationPlan -> singlePlacePlan.add(migrationPlan));
         List<Node> nodesForMultiMigration = helper.deepCopy(nodes);
         initData();
         placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore(),false);
         boolean placedMulti = placeCapacityWithMultipleMigration(placeCapacityPod, nodesForMultiMigration);
-        log.info("Multi Node Migration status : {}", placedMulti);
+        log.debug("Multi Node Migration status : {}", placedMulti);
         List<MigrationPlanDto> multiPlacePlan = migrationPlans;
         if (placedSingle && placedMulti) {
             if (singlePlacePlan.size() >= multiPlacePlan.size()) {
-                log.info("Capacity {} is placed by single-pod migration", workloadCapacity);
+//                log.info("\n\nCapacity {} is placed by single-pod migration\n\n", workloadCapacity);
+                System.out.print("\nCapacity "+workloadCapacity+" is placed by single-pod migration.");
                 helper.printAvailableCapacity(nodesForSingleMigration, "AFTER");
                 return singlePlacePlan;
             } else {
-                log.info("Capacity {} is placed by multi-pod migration", workloadCapacity);
+//                log.info("\n\nCapacity {} is placed by multi-pod migration\n\n", workloadCapacity);
+                System.out.print("\nCapacity "+workloadCapacity+" is placed by multi-pod migration.");
                 helper.printAvailableCapacity(nodesForMultiMigration, "AFTER");
                 return multiPlacePlan;
             }
         } else if (placedSingle) {
-            log.info("Capacity {} is placed by single-pod migration", workloadCapacity);
+//            log.info("\n\nCapacity {} is placed by single-pod migration\n\n", workloadCapacity);
+            System.out.print("\nCapacity "+workloadCapacity+" is placed by single-pod migration");
             helper.printAvailableCapacity(nodesForSingleMigration, "AFTER");
             return singlePlacePlan;
         } else if (placedMulti) {
-            log.info("Capacity {} is placed by multi-pod migration", workloadCapacity);
+//            log.info("\n\nCapacity {} is placed by multi-pod migration\n\n", workloadCapacity);
+            System.out.print("\nCapacity "+workloadCapacity+" is placed by multi-pod migration");
             helper.printAvailableCapacity(nodesForMultiMigration, "AFTER");
             return multiPlacePlan;
         }
-        log.info("Failed to place capacity {} on any Node", workloadCapacity);
+        log.info("\nFailed to place capacity {} on any Node\n", workloadCapacity);
         return Collections.emptyList();
     }
 

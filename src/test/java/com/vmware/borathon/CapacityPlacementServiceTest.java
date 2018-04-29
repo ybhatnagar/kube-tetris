@@ -63,8 +63,8 @@ public class CapacityPlacementServiceTest {
         Capacity placeCapacity = new Capacity(2500, 900);
         List<Node> nodes = systemController.getNodes();
         List<MigrationPlanDto> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
-        log.info("Final result obtained : {}", placement);
-        log.info("Number of movements required : {}", placement.size());
+        log.debug("Final result obtained : {}", placement);
+        log.debug("Number of movements required : {}", placement.size());
     }
 
     private List<Node> deepCopy(List<Node> nodes) {

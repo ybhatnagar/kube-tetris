@@ -124,7 +124,8 @@ public class CapacityPlacementServiceHelper {
     public void printAvailableCapacity(List<Node> nodes, String state) {
         long totalAvailableCpu = nodes.stream().mapToLong(value -> value.getAvailableCapacity().getCpuMillicore()).sum();
         long totalAvailableMem = nodes.stream().mapToLong(value -> value.getAvailableCapacity().getMemoryMB()).sum();
-        log.info("Overall Available capacity "+state+" placement : memory : {}, cpu : {}", totalAvailableMem, totalAvailableCpu);
+//        log.info("\n\nOverall Available capacity "+state+" placement : memory : {}, cpu : {}\n", totalAvailableMem, totalAvailableCpu);
+        System.out.print("\nOverall Available capacity "+state+" placement : memory : "+totalAvailableMem+", cpu : "+totalAvailableCpu);
     }
 
     public void addAddressToMigrationMoves(Map<Pod, List<Address>> migrationMoves, String from, String to, Pod pod) {
@@ -159,6 +160,27 @@ public class CapacityPlacementServiceHelper {
             if (workloadAddress != null && workloadAddress.size() == 1) {
                 migrationPlans.add(new MigrationPlanDto(workload, workloadAddress.get(0).getFrom(), workloadAddress.get(0).getTo()));
                 migrationMoves.remove(workload);
+            }
+        }
+    }
+
+    public void printMigrationPlan(List<MigrationPlanDto> migrationPlans) {
+//        log.info("\n\n**************Migration Plan Step By Step**************************\n\n");
+        System.out.print("\n\n\n**************Migration Plan Step By Step**************************");
+        for(int migrationCount = 0; migrationCount < migrationPlans.size(); migrationCount++) {
+            MigrationPlanDto migrationPlan = migrationPlans.get(migrationCount);
+            if (migrationPlan.getFromNode() == null) {
+//                log.info("\n\n{}. Place workload capacity {} to node: {}\n\n", migrationCount+1,  migrationPlan.getPod().getRequest(),
+//                        migrationPlan.getToNode());
+                System.out.print("\n"+(migrationCount+1)+". Place workload capacity "+migrationPlan.getPod().getRequest()+" to node: " +
+                        ""+migrationPlan.getToNode()+"\n\n\n\n\n");
+            } else {
+//                log.info("\n\n{}. Move pod {} from node: {}  to node: {}\n\n",migrationCount+1, migrationPlan.getPod().getName(),
+//                        migrationPlan.getFromNode(), migrationPlan.getToNode());
+
+                System.out.print("\n"+(migrationCount+1)+". Move Pod "+migrationPlan.getPod().getName()+" from node: "+migrationPlan.getFromNode
+                        ()+" to node:"+migrationPlan.getToNode());
+
             }
         }
     }
