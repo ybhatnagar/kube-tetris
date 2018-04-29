@@ -3,7 +3,7 @@
   "kind": "Pod",
   "metadata": {
     "creationTimestamp": "2018-04-29T18:47:40Z",
-    "name": "frontend9",
+    "name": "$PODNAME",
     "namespace": "default",
     "selfLink": "/api/v1/namespaces/default/pods/frontend",
     "uid": "cb503dc4-4bdd-11e8-98ba-12ea61ad52ba"
