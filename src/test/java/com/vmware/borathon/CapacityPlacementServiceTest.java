@@ -60,7 +60,7 @@ public class CapacityPlacementServiceTest {
     @Test
     public void testPlaceWorkload() throws Exception{
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
-        Capacity placeCapacity = new Capacity(1400, 700);
+        Capacity placeCapacity = new Capacity(2500, 900);
         List<Node> nodes = systemController.getNodes();
         List<MigrationPlanDto> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
         log.info("Final result obtained : {}", placement);
