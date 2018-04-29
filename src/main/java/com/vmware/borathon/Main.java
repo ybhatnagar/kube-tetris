@@ -36,8 +36,10 @@ public class Main {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        //List<Node> inputNodes = NodeDataGenerator.generate(10, 300);
-        inputNodes.forEach(node -> systemController.addNode(node));
+        List<Node> simulatedNodes = NodeDataGenerator.generateFixedReal();
+        inputNodes.forEach(node -> {
+            systemController.addNode(node);
+        });
         triggerWorkLoadBalancer(systemController, 50);
         placeMyWorkload(systemController);
     }
