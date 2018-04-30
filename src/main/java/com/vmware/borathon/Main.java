@@ -3,6 +3,7 @@ package com.vmware.borathon;
 import java.util.Collections;
 import java.util.List;
 
+import com.vmware.borathon.cli.CliArgs;
 import com.vmware.borathon.interaction.KubernetesAccessor;
 import com.vmware.borathon.interaction.KubernetesAccessorImpl;
 import com.vmware.borathon.scheduler.CapacityPlacementService;
@@ -21,13 +22,19 @@ public class Main {
     private static KubernetesAccessor k8S;
 
     public static void main(String[] args) throws InterruptedException {
+
+        CliArgs cliArgs = new CliArgs(args);
+
         //Create SystemController and nodes and pods
         SystemController systemController = new SystemControllerImpl();
 
         //Fetch Nodes from K8S
         k8S = new KubernetesAccessorImpl();
 
-        List<Node> inputNodes = fetchNodes(false);
+        //If the command line arguments contains the -podsAlreadyCreated switch anywhere, the switchPresent() method will return true.
+        //If not, the switchPresent() method will return false.
+        boolean podsAlreadyCreated = cliArgs.switchPresent("-podsAlreadyCreated");
+        List<Node> inputNodes = fetchNodes(podsAlreadyCreated);
 
         //Update the system snapshot with latest nodes update with pods
         inputNodes.forEach(node -> systemController.addNode(node));
@@ -47,7 +54,10 @@ public class Main {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        k8S.cleanSystem();
+
+        boolean cleanSystem = cliArgs.switchPresent("-cleanSystem");
+        if(cleanSystem)
+            k8S.cleanSystem();
     }
 
     private static List<Node> fetchNodes(boolean podsAlreadyCreated){
