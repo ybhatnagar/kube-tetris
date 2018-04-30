@@ -302,16 +302,20 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         }
     }
 
-    public void cleanSystem(List<Node> nodes){
-        nodes.forEach(node ->{
-            node.getPods().values().forEach(pod ->{
-                try {
-                    deletePod(pod.getName());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+    public void cleanSystem(){
+        try {
+            getSystemSnapshot().forEach(node ->{
+                node.getPods().values().forEach(pod ->{
+                    try {
+                        deletePod(pod.getName());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                });
             });
-        });
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     private long memoryUnitParser(String toBeConverted){

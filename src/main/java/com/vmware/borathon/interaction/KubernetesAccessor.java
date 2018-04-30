@@ -16,5 +16,5 @@ public interface KubernetesAccessor {
     void createPod(String onNode,JSONObject podConfig) throws InterruptedException,ParseException;
     boolean deletePod(String podName) throws InterruptedException;
     JSONObject readPodToBePlaced(String nodeName, long cpu, long memoryMB);
-    void cleanSystem(List<Node> nodes);
+    void cleanSystem();
 }
