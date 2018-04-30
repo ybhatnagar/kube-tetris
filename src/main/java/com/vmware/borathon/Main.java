@@ -47,7 +47,7 @@ public class Main {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        k8S.cleanSystem(inputNodes);
+        k8S.cleanSystem();
     }
 
     private static List<Node> fetchNodes(boolean podsAlreadyCreated){
