@@ -28,7 +28,7 @@ import static javax.ws.rs.client.Entity.entity;
 public class KubernetesAccessorImpl implements KubernetesAccessor{
     private static final Logger log = LoggerFactory.getLogger(KubernetesAccessorImpl.class);
 
-    private static final int INTERVAL_TIME_MILLIS = 10000;
+    private static final int INTERVAL_TIME_MILLIS = 5000;
     private static final int TIMEOUT = 60000;
 
     private static final String KUBE_SYSTEM= "kube-system";
@@ -100,7 +100,7 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         return nodes;
     }
 
-    private boolean getStatus(String podName){
+    private boolean getDeleteStatus(String podName){
         WebTarget webTarget = client.target("http://localhost:8080/api/v1/namespaces/default/pods/" + podName);
         Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
         Response response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
@@ -183,6 +183,42 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
     }
 
+    public boolean deletePod(String podName) throws InterruptedException {
+        //deleting the pod from current node
+        log.info("deleting the pod {} from current node" ,podName );
+
+        WebTarget webTarget;
+        Invocation.Builder invocationBuilder;
+        Response response;
+
+        webTarget = client.target("http://localhost:8080/api/v1/namespaces/default/pods/"+podName);
+        invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+        response = invocationBuilder.method(HttpMethod.DELETE, null, Response.class);
+
+        int timeout=TIMEOUT;
+        if(response.getStatus()==200){
+            Thread.sleep(INTERVAL_TIME_MILLIS);
+            log.info("Pod {} deleted from node.Waiting for it to complete.", podName);
+
+            while (timeout>=0 && !getDeleteStatus(podName)) {
+                log.info("delete operation not yet completed, sleeping for {} milliseconds",INTERVAL_TIME_MILLIS);
+                Thread.sleep(INTERVAL_TIME_MILLIS);
+                timeout-=INTERVAL_TIME_MILLIS;
+            }
+            if(timeout<0){
+                log.error("delete timed out, Inconsistent state!!!! please revert the changes done till now, from the stack");
+                throw new IllegalStateException("System is in inconsistent state, halting now.");
+            }
+            else{
+                return true;
+            }
+
+        }else{
+            log.error("pod delete failed from original node. Stopping");
+            throw new IllegalStateException("Pod delete failed from original pod.");
+        }
+    }
+
     //Fetch the pod details from k8s and append the node Affinity
     public void migratePod(String podName, String toNode) throws IllegalStateException, ParseException,InterruptedException{
         //delete resourceversion in metadata, and nodeName from spec from the get response of pod
@@ -198,38 +234,12 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
         JSONObject podResponse = getPodData(podName);
 
-        //deleting the pod from current node
-        log.info("deleting the pod {} from current node" ,podName );
-
-        WebTarget webTarget;
-        Invocation.Builder invocationBuilder;
-        Response response;
-
-        webTarget = client.target("http://localhost:8080/api/v1/namespaces/default/pods/"+podName);
-        invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-        response = invocationBuilder.method(HttpMethod.DELETE, null, Response.class);
-
-        int timeout=TIMEOUT;
-        if(response.getStatus()==200){
-            Thread.sleep(INTERVAL_TIME_MILLIS);
-            log.info("Pod {} deleted from node", podName);
-
-            while (timeout>=0 && !getStatus(podName)) {
-                log.info("delete operation not yet completed, sleeping for {} milliseconds",INTERVAL_TIME_MILLIS);
-                Thread.sleep(INTERVAL_TIME_MILLIS);
-                timeout-=INTERVAL_TIME_MILLIS;
-            }
-            if(timeout<=0){
-                log.error("delete timeout, Inconsistent state!!!! please revert the changes done till now, from the stack");
-                throw new IllegalStateException("System is in inconsistent state, halting now.");
-            }
-
-            createPod(toNode, podName,podResponse);
+        boolean deleteResult = deletePod(podName);
+        if(deleteResult){
+            createPod(toNode,podResponse);
         }else{
-            log.error("pod delete failed from original node. Stopping");
-            throw new IllegalStateException("Pod delete failed from original pod.");
+            log.error("pod delete failed");
         }
-
 
     }
 
@@ -247,15 +257,15 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         return podResponse;
     }
 
-    public void createPod(String toNode, String podName,JSONObject podResponse) throws InterruptedException,ParseException {
+    public void createPod(String onNode, JSONObject podConfig) throws InterruptedException,ParseException {
 
-
+        log.info("creating on node {} pod with config {}",onNode,podConfig.toString());
 
         Map<String, String> hashm = new HashMap<>();
-        String aux = "{\"nodeAffinity\": {\"requiredDuringSchedulingIgnoredDuringExecution\": {\"nodeSelectorTerms\": [{\"matchExpressions\": [{\"key\": \"kubernetes.io/hostname\", \"operator\": \"In\",\"values\": [\"" + toNode + "\"]}]}]}}}";
+        String aux = "{\"nodeAffinity\": {\"requiredDuringSchedulingIgnoredDuringExecution\": {\"nodeSelectorTerms\": [{\"matchExpressions\": [{\"key\": \"kubernetes.io/hostname\", \"operator\": \"In\",\"values\": [\"" + onNode + "\"]}]}]}}}";
         hashm.put("scheduler.alpha.kubernetes.io/affinity", aux);
         JSONObject obj = new JSONObject(hashm);
-        ((JSONObject) podResponse.get("metadata")).put("annotations", obj);
+        ((JSONObject) podConfig.get("metadata")).put("annotations", obj);
 
         Response response;
         int timeout;
@@ -265,14 +275,14 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         //Creating pod
         response = client.target("http://localhost:8080/api/v1/namespaces/default/pods/")
                 .request()
-                .method("POST", entity(podResponse.toJSONString(), "application/json"));
+                .method("POST", entity(podConfig.toJSONString(), "application/json"));
 
         Thread.sleep(INTERVAL_TIME_MILLIS);
-        //response.getStatus();
+        //response.getDeleteStatus();
 
         if(response.getStatus()>=200 && response.getStatus()<400 ){
             /*timeout=INTERVAL_TIME_MILLIS;
-            while (timeout>=0 && getStatus(podName)) {
+            while (timeout>=0 && getDeleteStatus(podName)) {
                 log.info("create operation not yet completed,sleeping for {} milliseconds", INTERVAL_TIME_MILLIS);
                 Thread.sleep(INTERVAL_TIME_MILLIS);
                 timeout -= INTERVAL_TIME_MILLIS;
@@ -282,11 +292,8 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
                 throw new IllegalStateException("System is in inconsistent state, halting now.");
             }*/
 
-            //webTarget = client.target("http://localhost:8080/api/v1/namespaces/default/pods/"+podName);
-            //invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-            //response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
 
-            log.info("pod successfully placed on new node {}" , toNode);
+            log.info("pod successfully placed on new node {}" , onNode);
         }else{
             log.error("pod creation failed!! stopping");
         }

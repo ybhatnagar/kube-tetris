@@ -37,13 +37,51 @@ public class Main {
             e.printStackTrace();
         }
         List<Node> simulatedNodes = NodeDataGenerator.generateFixedReal();
+        createSystemFromFixed(simulatedNodes.get(0),inputNodes.get(0),k8S);
+        createSystemFromFixed(simulatedNodes.get(1),inputNodes.get(1),k8S);
+        createSystemFromFixed(simulatedNodes.get(2),inputNodes.get(2),k8S);
+
+        try {
+            inputNodes = k8S.getSystemSnapshot();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
         inputNodes.forEach(node -> {
             systemController.addNode(node);
         });
         triggerWorkLoadBalancer(systemController, 50);
         placeMyWorkload(systemController);
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        cleanSystem(k8S,inputNodes);
     }
 
+    private static void cleanSystem(KubernetesAccessor k8S,List<Node> nodes){
+        nodes.forEach(node ->{
+            node.getPods().values().forEach(pod ->{
+                try {
+                    k8S.deletePod(pod.getName());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        });
+    }
+    private static void createSystemFromFixed(Node simulated, Node actual,KubernetesAccessor accessor){
+        simulated.getPods().values().forEach(pod ->{
+            try {
+                accessor.createPod(actual.getName(),readPodToBePlaced(actual.getName(),pod.getRequest().getCpuMillicore(),pod.getRequest().getMemoryMB()));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        });
+    }
 
     private static void triggerWorkLoadBalancer(SystemController systemController, int iterations){
         WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(systemController, 50);
@@ -61,7 +99,7 @@ public class Main {
             try {
                 if ("-1".equals(migrationPlanDto.getPod().getId())){
                     JSONObject readValue = readPodToBePlaced(migrationPlanDto.getToNode(),toPlace.getCpuMillicore(),toPlace.getMemoryMB());
-                    k8S.createPod(migrationPlanDto.getToNode(),migrationPlanDto.getPod().getName(),readValue);
+                    k8S.createPod(migrationPlanDto.getToNode(),readValue);
                 }else{
                     k8S.migratePod(migrationPlanDto.getPod().getName(), migrationPlanDto.getToNode());
                 }
