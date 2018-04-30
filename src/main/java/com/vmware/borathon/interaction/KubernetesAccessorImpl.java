@@ -95,8 +95,8 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
             String mem = (String) ((JSONObject) ((JSONObject)result.get("status")).get("capacity")).get("memory");
 
 
-            long nodeMem = memoryUnitParser(mem);
-            long nodeCpu = cpuUnitParser(cpu);
+            long nodeMem = memoryUnitParser(mem) - 50;
+            long nodeCpu = cpuUnitParser(cpu) - 50;
             nodes.put(nodeName,new Node(i.toString(),nodeName,nodeMem,nodeCpu));
             i++;
         }
