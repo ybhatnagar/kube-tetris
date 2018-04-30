@@ -75,7 +75,7 @@ public class NodeDataGenerator {
 
         node.addPod(pod1); node.addPod(pod2); node.addPod(pod3); node.addPod(pod5);
         kubeEnv.add(node);
-        node = new Node("1", "ip-172-20-0-247.ec2.internal", 3700, 1500);
+        node = new Node("1", "ip-172-20-0-247.ec2.internal", 3500, 1400);
         pod1 = new Pod("1_0", "second_first", 400, 300,false);
         pod2 = new Pod("1_1", "second_second", 400, 200,false);
         pod3 = new Pod("1_2", "second_third", 800, 400,false);
