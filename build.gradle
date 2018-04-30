@@ -1,7 +1,35 @@
 group 'com.vmware.borathon'
 version '1.0-SNAPSHOT'
 
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
+    }
+}
+
 apply plugin: 'java'
+apply plugin: "com.github.johnrengelman.shadow"
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.vmware.borathon.Main'
+    }
+}
+
+artifacts {
+    archives shadowJar
+}
+
+shadowJar {
+    dependencies {
+        exclude(dependency('org.bouncycastle:bcprov-jdk15on:1.54'))
+        exclude(dependency('org.bouncycastle:bcprov-jdk15on:1.57'))
+    }
+    mergeServiceFiles()
+}
 
 sourceCompatibility = 1.8
 
