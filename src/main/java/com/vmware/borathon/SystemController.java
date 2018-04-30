@@ -9,4 +9,5 @@ public interface SystemController {
     List<Node> getNodesSortedByRatio();
     double getPivotRatio();
     double getSystemEntropy();
+    void getStatus();
 }

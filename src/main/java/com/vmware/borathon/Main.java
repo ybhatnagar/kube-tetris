@@ -22,7 +22,10 @@ import org.json.simple.parser.ParseException;
 
 @Slf4j
 public class Main {
+
     private static KubernetesAccessor k8S;
+
+    private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     public static void main(String[] args) {
         //Create SystemController and nodes and pods
@@ -50,6 +53,7 @@ public class Main {
         inputNodes.forEach(node -> {
             systemController.addNode(node);
         });
+
         triggerWorkLoadBalancer(systemController, 50);
         placeMyWorkload(systemController);
         try {
@@ -136,8 +140,6 @@ public class Main {
         }
         return null;
     }
-
-    private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     private static String randomAlpha(int count) {
         StringBuilder builder = new StringBuilder();
