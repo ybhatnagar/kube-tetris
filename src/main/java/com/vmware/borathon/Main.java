@@ -105,7 +105,6 @@ public class Main {
 
         Capacity toPlace = new Capacity(1100, 200);
         List<MigrationPlanDto> planDtoList = capacityPlacementService.placeMyWorkload(toPlace, systemController.getNodes());
-        System.out.println(planDtoList);
         planDtoList.forEach(migrationPlanDto -> {
 
             try {

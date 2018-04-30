@@ -38,7 +38,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
         boolean result = values.stream().filter(Objects::nonNull).allMatch(i -> i < 0) || values.stream().filter(Objects::nonNull).allMatch(i -> i > 0);
 
         if(result){
-            log.info("all the nodes are on one side of thepivot ratio. No mode balancing of CPU/Memory possible");
+            log.info("all the nodes are on one side of the pivot ratio. No mode balancing of CPU/Memory possible");
         }
         return result;
     }
@@ -62,16 +62,16 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     //Revert swapping
                     if (nodeA.removePod(podB) && nodeB.removePod(podA)) {
                         if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
-                            log.info("Swap reverted since new entropy {} was greater than old {}", entropyAfterSwap, entropyBeforeSwap);
+                            log.info("Swap ignored since new system entropy {} will be greater than old {}", entropyAfterSwap, entropyBeforeSwap);
                         } else {
-                            log.info("Swap revert failed do not proceed further and exit");
+                            log.debug("Swap revert failed do not proceed further and exit");
                         }
                     }
                     return false;
                 }
-                System.out.println("Swapping pod " + podA.getName() +" running on node" + nodeA.getName() + " with pod " + podB.getName() + " running on node " + nodeB);
-
+                System.out.println("Swapping pod " + podA.getName() +" running on node" + nodeA.getName() + " with pod " + podB.getName() + " running on node " + nodeB.getName());
                 kubernetesAccessor.swapPods(podA.getName(), nodeA.getName(), podB.getName(), nodeB.getName() );
+
                 log.info("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA.getName(), podB.getName(), nodeB.getName(), podA.getName());
                 log.info("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
 
@@ -81,30 +81,30 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             } else if(bAddedToA){
                 nodeA.removePod(podB);
                 if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
-                    log.info("Swap reverted...");
+                    log.debug("Swap reverted...");
                 }
                 return false;
             } else if(aAddedToB){
                 nodeB.removePod(podA);
                 if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
-                    log.info("Swap reverted...");
+                    log.debug("Swap reverted...");
                 }
                 return false;
             }
             else {
-                log.info("Swap failed since available capacity was less");
+                log.debug("Swap failed since available capacity was less");
                 if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
-                    log.info("Swap reverted...");
+                    log.debug("Swap reverted...");
                 }
                 return false;
             }
         } else if(aRemovedFromA){
             if(nodeA.addPod(podA))
-                log.info("Swap reverted...");
+                log.debug("Swap reverted...");
             return false;
         } else if(bRemovedFromB){
             if(nodeB.addPod(podB))
-                log.info("Swap reverted...");
+                log.debug("Swap reverted...");
             return false;
         } else{
             return false;
@@ -115,10 +115,10 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
     public void balance(){
         double pivotRatio = controller.getPivotRatio();
         double entropyBeforeBalancing = controller.getSystemEntropy();
-        log.info("Nodes information before balancing : ");
+        System.out.print("Nodes information before balancing : ");
         controller.getNodes().forEach(n -> {
-            log.info("{}", n);
-            log.info("{}", n.getPods());
+            System.out.print(" " + n);
+            System.out.print(" " + n.getPods());
         });
 
         while (currIterations <= ITERATIONS && !isSchedulingDone(pivotRatio)){
@@ -153,7 +153,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     if(isSwapped){
                         break;
                     } else{
-                        log.info("swap failed for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(left), podsCpuSorted.get(leftPods), sortedNodes.get(right), podsMemSorted.get(rightPods));
+                        log.info("swap ignored for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(left), podsCpuSorted.get(leftPods), sortedNodes.get(right), podsMemSorted.get(rightPods));
                     }
 
                     if (leftNodeDistance < rightNodeDistance){
@@ -197,12 +197,12 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
             currIterations++;
         }
         double entropyAfterBalancing = controller.getSystemEntropy();
-        log.info("System entropy before  balancing : {} ", entropyBeforeBalancing);
-        log.info("System entropy after  balancing : {} ", entropyAfterBalancing);
-        log.info("Nodes information after balancing : ");
+        System.out.println("System entropy before  balancing : "+ entropyBeforeBalancing);
+        System.out.println("System entropy after  balancing : "+ entropyAfterBalancing);
+        System.out.print("Nodes information after balancing : ");
         controller.getNodes().forEach(n -> {
-            log.info("{}", n);
-            log.info("{}", n.getPods());
+            System.out.print(" "+ n);
+            System.out.print(" "+ n.getPods());
         });
     }
 }
