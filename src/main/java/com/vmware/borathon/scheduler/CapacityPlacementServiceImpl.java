@@ -44,7 +44,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
                 && totalAvailableMem >= placeCapacity.getMemoryMB()) {
             return true;
         }
-        log.info("Capacity {} cannot be placed on total Available cpu {} , memory {}", placeCapacity, totalAvailableCpu, totalAvailableMem);
+        //log.info("Capacity {} cannot be placed on total Available cpu {} , memory {}", placeCapacity, totalAvailableCpu, totalAvailableMem);
         return false;
     }
 
@@ -163,7 +163,7 @@ public class CapacityPlacementServiceImpl implements CapacityPlacementService {
     private List<MigrationPlanDto> placeWorkload(Capacity workloadCapacity, List<Node> nodes) {
         List<Node> nodesForSingleMigration = helper.deepCopy(nodes);
         Pod placeCapacityPod = new Pod("-1", "wokload capacity", workloadCapacity.getMemoryMB(), workloadCapacity.getCpuMillicore(),false);
-        System.out.print("\n\n******************* Workload Placement Status ********************\n\n");
+        System.out.print("\n\n******************* Workload Placement Status ********************\n");
         helper.printAvailableCapacity(nodes, "BEFORE");
         boolean placedSingle = placeCapacity(placeCapacityPod, nodesForSingleMigration);
         log.debug("Single Node Migration status : {}\n", placedSingle);

@@ -56,4 +56,10 @@ public class SystemControllerImpl implements SystemController {
         }
         return sum;
     }
+
+    @Override
+    public void getStatus(){
+        System.out.print("\n\n******************* System Availability Status ********************\n\n");
+        nodes.forEach(node -> System.out.println("Node : " + node.getName() + " Available " + node.getAvailableCapacity()));
+    }
 }

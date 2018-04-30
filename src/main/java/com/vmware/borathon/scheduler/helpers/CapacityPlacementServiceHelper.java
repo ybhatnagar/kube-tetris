@@ -166,7 +166,7 @@ public class CapacityPlacementServiceHelper {
 
     public void printMigrationPlan(List<MigrationPlanDto> migrationPlans) {
 //        log.info("\n\n**************Migration Plan Step By Step**************************\n\n");
-        System.out.print("\n\n\n**************Migration Plan Step By Step**************************");
+        System.out.print("\n\n******************* Migration Plan Step By Step ********************\n");
         for(int migrationCount = 0; migrationCount < migrationPlans.size(); migrationCount++) {
             MigrationPlanDto migrationPlan = migrationPlans.get(migrationCount);
             if (migrationPlan.getFromNode() == null) {
