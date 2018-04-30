@@ -27,7 +27,7 @@ public class Main {
 
     private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         //Create SystemController and nodes and pods
         SystemController systemController = new SystemControllerImpl();
 
@@ -54,14 +54,22 @@ public class Main {
             systemController.addNode(node);
         });
 
-        triggerWorkLoadBalancer(systemController, 50);
         placeMyWorkload(systemController);
+
+        System.out.println("***********************************************************************************");
+        System.out.println("Trying to balance the cpu/memory consumption across nodes");
+        System.out.println("***********************************************************************************");
+
+        Thread.sleep(5000);
+
+        triggerWorkLoadBalancer(systemController, 50);
+
         try {
             Thread.sleep(10000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        cleanSystem(k8S,inputNodes);
+        //cleanSystem(k8S,inputNodes);
     }
 
     private static void cleanSystem(KubernetesAccessor k8S,List<Node> nodes){

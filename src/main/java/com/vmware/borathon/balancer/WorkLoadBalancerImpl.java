@@ -69,9 +69,14 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     }
                     return false;
                 }
+                System.out.println("Swapping pod " + podA.getName() +" running on node" + nodeA.getName() + " with pod " + podB.getName() + " running on node " + nodeB);
+
                 kubernetesAccessor.swapPods(podA.getName(), nodeA.getName(), podB.getName(), nodeB.getName() );
-                log.info("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA, podA, nodeB, podB);
+                log.info("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA.getName(), podB.getName(), nodeB.getName(), podA.getName());
                 log.info("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
+
+                System.out.println("Swap is successful and entropy changed from " + entropyBeforeSwap+ " to "+ entropyAfterSwap);
+
                 return true;
             } else if(bAddedToA){
                 nodeA.removePod(podB);
