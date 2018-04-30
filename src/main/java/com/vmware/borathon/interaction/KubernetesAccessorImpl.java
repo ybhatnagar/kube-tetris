@@ -1,8 +1,11 @@
 package com.vmware.borathon.interaction;
 
 
+import com.vmware.borathon.Main;
 import com.vmware.borathon.Node;
 import com.vmware.borathon.Pod;
+import com.vmware.borathon.loadsimulator.NodeDataGenerator;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -17,7 +20,12 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.json.simple.parser.ParseException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +36,7 @@ import static javax.ws.rs.client.Entity.entity;
 public class KubernetesAccessorImpl implements KubernetesAccessor{
     private static final Logger log = LoggerFactory.getLogger(KubernetesAccessorImpl.class);
 
+    private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final int INTERVAL_TIME_MILLIS = 5000;
     private static final int TIMEOUT = 60000;
 
@@ -36,32 +45,26 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
     private static final Client client = ClientBuilder.newClient();
     JSONParser parser = new JSONParser();
 
-    private long memoryUnitParser(String toBeConverted){
-        if(toBeConverted==null){
-            return 0;
-        }
-        if(toBeConverted.endsWith("Mi")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString());
-        }
-        else if(toBeConverted.endsWith("Gi")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())*1000;
-        }
-        else if(toBeConverted.endsWith("Ki")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())/1000;
-        }
-        else return Long.valueOf(toBeConverted);
-    }
+    @Override
+    public List<Node> populateSystem() {
+        List<Node> inputNodes = Collections.emptyList();
+        try {
+            //Get the intial resource map
+            inputNodes = getSystemSnapshot();
 
-    private long cpuUnitParser(String toBeConverted){
-        if(toBeConverted==null){
-            return 0;
+            //Create pods in the nodes
+            List<Node> simulatedNodes = NodeDataGenerator.generateFixedReal();
+            createSystemFromFixed(simulatedNodes.get(0),inputNodes.get(0));
+            createSystemFromFixed(simulatedNodes.get(1),inputNodes.get(1));
+            createSystemFromFixed(simulatedNodes.get(2),inputNodes.get(2));
+
+            //Get the updated resource map
+            inputNodes = getSystemSnapshot();
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return inputNodes;
         }
-        if(toBeConverted.endsWith("m")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-1).toString());
-        }
-        else{
-            return Long.valueOf(toBeConverted)*1000;
-        }
+        return inputNodes;
     }
 
     public List<Node> getSystemSnapshot() throws ParseException{
@@ -299,4 +302,88 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         }
     }
 
+    public void cleanSystem(List<Node> nodes){
+        nodes.forEach(node ->{
+            node.getPods().values().forEach(pod ->{
+                try {
+                    deletePod(pod.getName());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        });
+    }
+
+    private long memoryUnitParser(String toBeConverted){
+        if(toBeConverted==null){
+            return 0;
+        }
+        if(toBeConverted.endsWith("Mi")){
+            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString());
+        }
+        else if(toBeConverted.endsWith("Gi")){
+            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())*1000;
+        }
+        else if(toBeConverted.endsWith("Ki")){
+            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())/1000;
+        }
+        else return Long.valueOf(toBeConverted);
+    }
+
+    private long cpuUnitParser(String toBeConverted){
+        if(toBeConverted==null){
+            return 0;
+        }
+        if(toBeConverted.endsWith("m")){
+            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-1).toString());
+        }
+        else{
+            return Long.valueOf(toBeConverted)*1000;
+        }
+    }
+
+    private void createSystemFromFixed(Node simulated, Node actual){
+        simulated.getPods().values().forEach(pod ->{
+            try {
+                createPod(actual.getName(),readPodToBePlaced(actual.getName(),pod.getRequest().getCpuMillicore(),pod.getRequest().getMemoryMB()));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public JSONObject readPodToBePlaced(String nodeName, long cpu, long memoryMB){
+        JSONParser parser = new JSONParser();
+        Object obj = null;
+        try {
+            InputStream fileStream = Main.class.getClassLoader().getResourceAsStream("newpod.json");
+            obj = parser.parse(new InputStreamReader(fileStream));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        try {
+            if(obj != null){
+                String podName = randomAlpha(10).toLowerCase();
+                String jsonStr = obj.toString().replace("$PODNAME", podName).replace("$CPU",""+(cpu/2)).replace("$MEM",""+(memoryMB)/2);
+                return (JSONObject) parser.parse(jsonStr);
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
+        return null;
+    }
+
+    private String randomAlpha(int count) {
+        StringBuilder builder = new StringBuilder();
+        while (count-- != 0) {
+            int character = (int)(Math.random()*ALPHA_NUMERIC_STRING.length());
+            builder.append(ALPHA_NUMERIC_STRING.charAt(character));
+        }
+        return builder.toString();
+    }
 }
