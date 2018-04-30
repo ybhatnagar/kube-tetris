@@ -58,10 +58,21 @@ public class CapacityPlacementServiceTest {
     }
 
     @Test
-    public void testPlaceWorkload() throws Exception{
+    public void testPlaceWorkloadSingle() throws Exception{
         systemController.getStatus();
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
-        Capacity placeCapacity = new Capacity(1100, 200);
+        Capacity placeCapacity = new Capacity(1200, 200);
+        List<Node> nodes = systemController.getNodes();
+        List<MigrationPlanDto> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
+        log.debug("Final result obtained : {}", placement);
+        log.debug("Number of movements required : {}", placement.size());
+    }
+
+    @Test
+    public void testPlaceWorkloadMulti() throws Exception{
+        systemController.getStatus();
+        CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
+        Capacity placeCapacity = new Capacity(1300, 200);
         List<Node> nodes = systemController.getNodes();
         List<MigrationPlanDto> placement = capacityPlacementService.placeMyWorkload(placeCapacity, nodes);
         log.debug("Final result obtained : {}", placement);
