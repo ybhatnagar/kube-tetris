@@ -326,10 +326,10 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
             return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString());
         }
         else if(toBeConverted.endsWith("Gi")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())*1000;
+            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())*1024;
         }
         else if(toBeConverted.endsWith("Ki")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())/1000;
+            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())/1024;
         }
         else return Long.valueOf(toBeConverted);
     }

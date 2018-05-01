@@ -62,7 +62,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     //Revert swapping
                     if (nodeA.removePod(podB) && nodeB.removePod(podA)) {
                         if (nodeA.addPod(podA) && nodeB.addPod(podB)) {
-                            log.info("Swap ignored since new system entropy {} will be greater than old {}", entropyAfterSwap, entropyBeforeSwap);
+                            log.debug("Swap ignored since new system entropy {} will be greater than old {}", entropyAfterSwap, entropyBeforeSwap);
                         } else {
                             log.debug("Swap revert failed do not proceed further and exit");
                         }
@@ -72,8 +72,13 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                 System.out.println("Swapping pod " + podA.getName() +" running on node" + nodeA.getName() + " with pod " + podB.getName() + " running on node " + nodeB.getName());
                 kubernetesAccessor.swapPods(podA.getName(), nodeA.getName(), podB.getName(), nodeB.getName() );
 
-                log.info("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA.getName(), podB.getName(), nodeB.getName(), podA.getName());
-                log.info("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                log.debug("swap is successful for node {} , pod {} and node {} , pod {}" ,nodeA.getName(), podB.getName(), nodeB.getName(), podA.getName());
+                log.debug("Swap is successful and entropy changed from {} to {}", entropyBeforeSwap, entropyAfterSwap);
 
                 System.out.println("Swap is successful and entropy changed from " + entropyBeforeSwap+ " to "+ entropyAfterSwap);
 
@@ -123,7 +128,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
         while (currIterations <= ITERATIONS && !isSchedulingDone(pivotRatio)){
 
-            log.info("This is the {} iteration" , currIterations);
+            log.debug("This is the {} iteration" , currIterations);
 
             List<Node> sortedNodes = controller.getNodesSortedByRatio();
             int left=0,right = sortedNodes.size()-1;
@@ -153,7 +158,7 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     if(isSwapped){
                         break;
                     } else{
-                        log.info("swap ignored for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(left), podsCpuSorted.get(leftPods), sortedNodes.get(right), podsMemSorted.get(rightPods));
+                        log.debug("swap ignored for node {} , pod {} and node {} , pod {}" ,sortedNodes.get(left), podsCpuSorted.get(leftPods), sortedNodes.get(right), podsMemSorted.get(rightPods));
                     }
 
                     if (leftNodeDistance < rightNodeDistance){
