@@ -6,6 +6,7 @@ import com.kubetetris.Node;
 import com.kubetetris.Pod;
 import org.json.simple.parser.JSONParser;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.List;
 
 import static javax.ws.rs.client.Entity.entity;
 
+@Ignore
 public class KubernetesResourceTest {
 
     private static final Client client = ClientBuilder.newClient();

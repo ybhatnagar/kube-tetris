@@ -10,12 +10,14 @@ import com.kubetetris.balancer.WorkLoadBalancerImpl;
 import com.kubetetris.loadsimulator.NodeDataGenerator;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Ignore
 @RunWith(Parameterized.class)
 public class WorkloadBalancerFileDumpTest {
 
