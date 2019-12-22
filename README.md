@@ -1,7 +1,6 @@
 # Kube-tetris
 
-[![](https://github.com/ybhatnagar/kube-tetris/workflows/Java%20CI/badge.svg)]
-(https://github.com/ybhatnagar/kube-tetris/actions)
+[![](https://github.com/ybhatnagar/kube-tetris/workflows/Java%20CI/badge.svg)](https://github.com/ybhatnagar/kube-tetris/actions)
 
 
 Tetris is an extension to kubernetes that attempts to handle the fragmentation of available resources on the nodes. It provides a plan for pod migrations that will consolidate the chunks of available resouces across nodes together. This will help in more efficient utilization of cluster resources. 
