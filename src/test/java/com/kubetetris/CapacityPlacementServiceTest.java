@@ -9,10 +9,13 @@ import com.kubetetris.scheduler.CapacityPlacementServiceImpl;
 import com.kubetetris.scheduler.MigrationPlanDto;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
+@Ignore
 public class CapacityPlacementServiceTest {
     private static final Logger log = LoggerFactory.getLogger(CapacityPlacementServiceTest.class);
 

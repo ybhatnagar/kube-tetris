@@ -8,8 +8,11 @@ import com.kubetetris.balancer.WorkLoadBalancerImpl;
 import com.kubetetris.loadsimulator.NodeDataGenerator;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
+
+@Ignore
 public class WorkloadBalancerTest {
 
     private static SystemController systemController;
