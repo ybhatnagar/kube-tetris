@@ -17,6 +17,7 @@ Tetris also has a feature to avoid such a resource fragmentation by periodically
 
 ## Prerequisites
 
+- kubeconfig of the cluster (--runAs=external), or else it must be run inside the kubernetes cluster (--runAs=internal)
 
 ## Setup and Installation
 
