@@ -149,9 +149,14 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
                 Long memRequests = 0L;
 
                 while (containerIterator.hasNext()) {
-                    JSONObject requests = (JSONObject) ((JSONObject) containerIterator.next().get("resources")).get("requests");
-                    cpuRequests += cpuUnitParser((String) requests.get("cpu"));
-                    memRequests += memoryUnitParser((String) requests.get("memory"));
+                    JSONObject jsonObject = containerIterator.next();
+                    JSONObject requests = (JSONObject) ((JSONObject) jsonObject.get("resources")).get("requests");
+
+                    if(null != requests){
+                        cpuRequests += cpuUnitParser((String) requests.get("cpu"));
+                        memRequests += memoryUnitParser((String) requests.get("memory"));
+                    }
+
                 }
 
                 Pod currentPod;
