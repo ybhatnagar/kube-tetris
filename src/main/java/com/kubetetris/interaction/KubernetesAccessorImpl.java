@@ -15,6 +15,7 @@ import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.StandardEmitterMBean;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static javax.ws.rs.client.Entity.entity;
 
@@ -72,8 +74,12 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
     public List<Node> getSystemSnapshot() throws ParseException{
         Map<String, Node> nodes = getNodesInSystem();
+
         nodes = fillNodesWithPods("default",nodes); // default
         nodes = fillNodesWithPods(KUBE_SYSTEM,nodes);
+
+        nodes.remove("blr-3rd-2-dhcp285");
+
         return new ArrayList<>(nodes.values());
     }
 
@@ -177,15 +183,24 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         return nodes;
     }
 
-    public void swapPods(String podA, String nodeA, String podB, String nodeB){
+    public void swapPods(Pod podA, Node nodeA, Pod podB, Node nodeB){
         try {
             //delete podA from nodeA
             //add podB to nodeA
-            migratePod(podA, nodeB);
+            migratePod(podA.getName(), nodeB.getName());
+
+//            podA.setParentNode(nodeB);
+//            nodeA.removePod(podA);
+//            nodeB.addPod(podA);
 
             //delete podB from nodeB
             //add podA to nodeB
-            migratePod(podB, nodeA);
+            migratePod(podB.getName(), nodeA.getName());
+
+//            podB.setParentNode(nodeA);
+//            nodeB.removePod(podB);
+//            nodeA.addPod(podB);
+
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -270,13 +285,13 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
     public void createPod(String onNode, JSONObject podConfig) throws InterruptedException,ParseException {
 
-        log.info("creating on node {} pod with config {}",onNode,podConfig.toString());
+        log.info("creating on node {} pod", onNode);
 
         Map<String, String> hashm = new HashMap<>();
         String aux = "{\"nodeAffinity\": {\"requiredDuringSchedulingIgnoredDuringExecution\": {\"nodeSelectorTerms\": [{\"matchExpressions\": [{\"key\": \"kubernetes.io/hostname\", \"operator\": \"In\",\"values\": [\"" + onNode + "\"]}]}]}}}";
-        hashm.put("scheduler.alpha.kubernetes.io/affinity", aux);
+        hashm.put("spec", aux);
         JSONObject obj = new JSONObject(hashm);
-        ((JSONObject) podConfig.get("metadata")).put("annotations", obj);
+        ((JSONObject) podConfig.get("spec")).put("affinity", obj);
 
         Response response;
         int timeout;

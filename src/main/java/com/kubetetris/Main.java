@@ -34,12 +34,12 @@ public class Main {
         //If the command line arguments contains the -podsAlreadyCreated switch anywhere, the switchPresent() method will return true.
         //If not, the switchPresent() method will return false.
         boolean podsAlreadyCreated = cliArgs.switchPresent("-podsAlreadyCreated");
-        List<Node> inputNodes = fetchNodes(podsAlreadyCreated);
+        List<Node> inputNodes = fetchNodes(true);
 
         //Update the system snapshot with latest nodes update with pods
         inputNodes.forEach(node -> systemController.addNode(node));
 
-        placeMyWorkload(systemController);
+        //placeMyWorkload(systemController);
 
         System.out.println("***********************************************************************************");
         System.out.println("Trying to balance the cpu/memory consumption across nodes");
@@ -77,7 +77,7 @@ public class Main {
     }
 
     private static void triggerWorkLoadBalancer(SystemController systemController, int iterations){
-        WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(systemController, 50);
+        WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(systemController, 1);
         workLoadBalancer.balance();
     }
 
