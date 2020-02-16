@@ -3,7 +3,7 @@ kind: Pod
 metadata:
   annotations:
     cni.projectcalico.org/podIP: 192.168.2.6/32
-  name: niana2
+  name: zombie
   namespace: default
 spec:
   affinity:
@@ -24,8 +24,8 @@ spec:
     name: ngnix
     resources:
       requests:
-        cpu: 200m
-        memory: 550Mi
+        cpu: 600m
+        memory: 1200Mi
     terminationMessagePath: /dev/termination-log
     terminationMessagePolicy: File
     volumeMounts:
@@ -37,8 +37,8 @@ spec:
     name: wp
     resources:
       requests:
-        cpu: 200m
-        memory: 550Mi
+        cpu: 600m
+        memory: 1200Mi
     terminationMessagePath: /dev/termination-log
     terminationMessagePolicy: File
     volumeMounts:

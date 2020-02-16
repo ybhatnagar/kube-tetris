@@ -3,11 +3,11 @@
     "kind": "Pod",
     "metadata": {
         "annotations": {
-            "cni.projectcalico.org/podIP": "192.168.3.8/32"
+            "cni.projectcalico.org/podIP": "192.168.2.15/32"
         },
         "creationTimestamp": null,
-        "name": "yash",
-        "selfLink": "/api/v1/namespaces/default/pods/yash"
+        "name": "niana",
+        "selfLink": "/api/v1/namespaces/default/pods/niana"
     },
     "spec": {
         "affinity": {
@@ -20,7 +20,7 @@
                                     "key": "kubernetes.io/hostname",
                                     "operator": "In",
                                     "values": [
-                                        "blr2-3rd-flr-dhcp-10-112-82-144"
+                                        "blr2-3rd-flr-dhcp-10-112-82-143"
                                     ]
                                 }
                             ]
@@ -42,8 +42,8 @@
                 "name": "ngnix",
                 "resources": {
                     "requests": {
-                        "cpu": "50m",
-                        "memory": "475Mi"
+                        "cpu": "150m",
+                        "memory": "250Mi"
                     }
                 },
                 "terminationMessagePath": "/dev/termination-log",
@@ -62,8 +62,8 @@
                 "name": "wp",
                 "resources": {
                     "requests": {
-                        "cpu": "50m",
-                        "memory": "475Mi"
+                        "cpu": "150m",
+                        "memory": "250Mi"
                     }
                 },
                 "terminationMessagePath": "/dev/termination-log",
@@ -79,7 +79,6 @@
         ],
         "dnsPolicy": "ClusterFirst",
         "enableServiceLinks": true,
-        "nodeName": "blr2-3rd-flr-dhcp-10-112-82-144",
         "priority": 0,
         "restartPolicy": "Always",
         "schedulerName": "default-scheduler",

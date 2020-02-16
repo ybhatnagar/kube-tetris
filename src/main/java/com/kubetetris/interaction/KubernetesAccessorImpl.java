@@ -1,30 +1,5 @@
 package com.kubetetris.interaction;
 
-
-import com.kubetetris.Main;
-import com.kubetetris.Node;
-import com.kubetetris.Pod;
-import com.kubetetris.loadsimulator.NodeDataGenerator;
-
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.util.Config;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.management.StandardEmitterMBean;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.json.simple.parser.ParseException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -34,7 +9,24 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import com.kubetetris.Main;
+import com.kubetetris.Node;
+import com.kubetetris.Pod;
+import com.kubetetris.loadsimulator.NodeDataGenerator;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static javax.ws.rs.client.Entity.entity;
 
@@ -287,11 +279,27 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
         log.info("creating on node {} pod", onNode);
 
-        Map<String, String> hashm = new HashMap<>();
-        String aux = "{\"nodeAffinity\": {\"requiredDuringSchedulingIgnoredDuringExecution\": {\"nodeSelectorTerms\": [{\"matchExpressions\": [{\"key\": \"kubernetes.io/hostname\", \"operator\": \"In\",\"values\": [\"" + onNode + "\"]}]}]}}}";
-        hashm.put("spec", aux);
-        JSONObject obj = new JSONObject(hashm);
-        ((JSONObject) podConfig.get("spec")).put("affinity", obj);
+        HashMap<String, Object> matchExpressions = new HashMap<>();
+        matchExpressions.put("key", "kubernetes.io/hostname");
+        matchExpressions.put("operator","In");
+        matchExpressions.put("values", Collections.singletonList(onNode));
+
+        HashMap<String, Object> selectorTerms = new HashMap<>();
+        selectorTerms.put("matchExpressions", Collections.singletonList(matchExpressions));
+
+        HashMap<String, Object> required = new HashMap<>();
+        required.put("nodeSelectorTerms", Collections.singletonList(selectorTerms));
+
+        Map<String,Object> nodeSelector = new HashMap<>();
+        nodeSelector.put("requiredDuringSchedulingIgnoredDuringExecution", required);
+
+        HashMap<String, Object> nodeAffinity = new HashMap<>();
+        nodeAffinity.put("nodeAffinity", nodeSelector);
+
+        JSONObject nodeAffinityObj = new JSONObject(nodeAffinity);
+
+
+        ((JSONObject) podConfig.get("spec")).put("affinity", nodeAffinityObj);
 
         Response response;
         int timeout;
@@ -394,7 +402,7 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         }
         try {
             if(obj != null){
-                String podName = randomAlpha(10).toLowerCase();
+                String podName = "zombie";
                 String jsonStr = obj.toString().replace("$PODNAME", podName).replace("$CPU",""+(cpu/2)).replace("$MEM",""+(memoryMB)/2);
                 return (JSONObject) parser.parse(jsonStr);
             }

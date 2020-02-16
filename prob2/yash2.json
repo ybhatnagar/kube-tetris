@@ -3,11 +3,11 @@
     "kind": "Pod",
     "metadata": {
         "annotations": {
-            "cni.projectcalico.org/podIP": "192.168.1.33/32"
+            "cni.projectcalico.org/podIP": "192.168.3.7/32"
         },
         "creationTimestamp": null,
-        "name": "hemani",
-        "selfLink": "/api/v1/namespaces/default/pods/hemani"
+        "name": "yash2",
+        "selfLink": "/api/v1/namespaces/default/pods/yash2"
     },
     "spec": {
         "affinity": {
@@ -20,7 +20,7 @@
                                     "key": "kubernetes.io/hostname",
                                     "operator": "In",
                                     "values": [
-                                        "blr2-3rd-flr-dhcp-10-112-82-142"
+                                        "blr2-3rd-flr-dhcp-10-112-82-144"
                                     ]
                                 }
                             ]
@@ -42,8 +42,8 @@
                 "name": "ngnix",
                 "resources": {
                     "requests": {
-                        "cpu": "250m",
-                        "memory": "150Mi"
+                        "cpu": "50m",
+                        "memory": "375Mi"
                     }
                 },
                 "terminationMessagePath": "/dev/termination-log",
@@ -62,8 +62,8 @@
                 "name": "wp",
                 "resources": {
                     "requests": {
-                        "cpu": "250m",
-                        "memory": "150Mi"
+                        "cpu": "50m",
+                        "memory": "375Mi"
                     }
                 },
                 "terminationMessagePath": "/dev/termination-log",
@@ -79,7 +79,6 @@
         ],
         "dnsPolicy": "ClusterFirst",
         "enableServiceLinks": true,
-        "nodeName": "blr2-3rd-flr-dhcp-10-112-82-142",
         "priority": 0,
         "restartPolicy": "Always",
         "schedulerName": "default-scheduler",
