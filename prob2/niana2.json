@@ -6,7 +6,7 @@
             "cni.projectcalico.org/podIP": "192.168.2.16/32"
         },
         "creationTimestamp": null,
-        "name": "niana2",
+        "name": "drums",
         "selfLink": "/api/v1/namespaces/default/pods/niana2"
     },
     "spec": {

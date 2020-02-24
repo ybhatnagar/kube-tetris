@@ -6,7 +6,7 @@
             "cni.projectcalico.org/podIP": "192.168.1.33/32"
         },
         "creationTimestamp": null,
-        "name": "hemani",
+        "name": "apple",
         "selfLink": "/api/v1/namespaces/default/pods/hemani"
     },
     "spec": {

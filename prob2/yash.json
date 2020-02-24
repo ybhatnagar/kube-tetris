@@ -6,7 +6,7 @@
             "cni.projectcalico.org/podIP": "192.168.3.8/32"
         },
         "creationTimestamp": null,
-        "name": "yash",
+        "name": "eggplant",
         "selfLink": "/api/v1/namespaces/default/pods/yash"
     },
     "spec": {

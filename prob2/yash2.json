@@ -6,7 +6,7 @@
             "cni.projectcalico.org/podIP": "192.168.3.7/32"
         },
         "creationTimestamp": null,
-        "name": "yash2",
+        "name": "falcon",
         "selfLink": "/api/v1/namespaces/default/pods/yash2"
     },
     "spec": {

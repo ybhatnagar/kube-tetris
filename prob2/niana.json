@@ -6,7 +6,7 @@
             "cni.projectcalico.org/podIP": "192.168.2.15/32"
         },
         "creationTimestamp": null,
-        "name": "niana",
+        "name": "carrot",
         "selfLink": "/api/v1/namespaces/default/pods/niana"
     },
     "spec": {
