@@ -6,9 +6,7 @@ import com.kubetetris.Node;
 import com.kubetetris.Pod;
 import com.kubetetris.loadsimulator.NodeDataGenerator;
 
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.util.Config;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -34,6 +32,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static com.kubetetris.interaction.utils.UnitParser.cpuUnitParser;
+import static com.kubetetris.interaction.utils.UnitParser.memoryUnitParser;
 import static javax.ws.rs.client.Entity.entity;
 
 public class KubernetesAccessorImpl implements KubernetesAccessor{
@@ -172,15 +172,15 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         return nodes;
     }
 
-    public void swapPods(String podA, String nodeA, String podB, String nodeB){
+    public void swapPods(Pod podA, Node nodeA, Pod podB, Node nodeB){
         try {
             //delete podA from nodeA
             //add podB to nodeA
-            migratePod(podA, nodeB);
+            migratePod(podA.getName(), nodeB.getName());
 
             //delete podB from nodeB
             //add podA to nodeB
-            migratePod(podB, nodeA);
+            migratePod(podB.getName(), nodeA.getName());
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -321,33 +321,6 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         }
     }
 
-    private long memoryUnitParser(String toBeConverted){
-        if(toBeConverted==null){
-            return 0;
-        }
-        if(toBeConverted.endsWith("Mi")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString());
-        }
-        else if(toBeConverted.endsWith("Gi")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())*1024;
-        }
-        else if(toBeConverted.endsWith("Ki")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())/1024;
-        }
-        else return Long.valueOf(toBeConverted);
-    }
-
-    private long cpuUnitParser(String toBeConverted){
-        if(toBeConverted==null){
-            return 0;
-        }
-        if(toBeConverted.endsWith("m")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-1).toString());
-        }
-        else{
-            return Long.valueOf(toBeConverted)*1000;
-        }
-    }
 
     private void createSystemFromFixed(Node simulated, Node actual){
         simulated.getPods().values().forEach(pod ->{

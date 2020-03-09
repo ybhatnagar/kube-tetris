@@ -73,7 +73,11 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
                     return false;
                 }
                 System.out.println("Swapping pod " + podA.getName() +" running on node" + nodeA.getName() + " with pod " + podB.getName() + " running on node " + nodeB.getName());
-                kubernetesAccessor.swapPods(podA.getName(), nodeA.getName(), podB.getName(), nodeB.getName() );
+                try{
+                    kubernetesAccessor.swapPods(podA, nodeA, podB, nodeB );
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
 
                 try {
                     Thread.sleep(5000);

@@ -1,5 +1,6 @@
 package com.kubetetris;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -8,9 +9,15 @@ import com.kubetetris.balancer.WorkLoadBalancerImpl;
 import com.kubetetris.cli.CliArgs;
 import com.kubetetris.interaction.KubernetesAccessor;
 import com.kubetetris.interaction.KubernetesAccessorImpl;
+import com.kubetetris.interaction.KubernetesAccessorImplV2;
 import com.kubetetris.scheduler.CapacityPlacementService;
 import com.kubetetris.scheduler.CapacityPlacementServiceImpl;
 import com.kubetetris.scheduler.MigrationPlanDto;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.util.Config;
 import lombok.extern.slf4j.Slf4j;
 
 import org.json.simple.JSONObject;
@@ -21,7 +28,7 @@ public class Main {
 
     private static KubernetesAccessor k8S;
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
 
         CliArgs cliArgs = new CliArgs(args);
 
@@ -29,23 +36,23 @@ public class Main {
         SystemController systemController = new SystemControllerImpl();
 
         //Fetch Nodes from K8S
-        k8S = new KubernetesAccessorImpl();
+        k8S = new KubernetesAccessorImplV2();
 
         //If the command line arguments contains the -podsAlreadyCreated switch anywhere, the switchPresent() method will return true.
         //If not, the switchPresent() method will return false.
         boolean podsAlreadyCreated = cliArgs.switchPresent("-podsAlreadyCreated");
-        List<Node> inputNodes = fetchNodes(podsAlreadyCreated);
+        List<Node> inputNodes = fetchNodes(true);
 
         //Update the system snapshot with latest nodes update with pods
         inputNodes.forEach(node -> systemController.addNode(node));
 
-        placeMyWorkload(systemController);
+        //placeMyWorkload(systemController);
 
         System.out.println("***********************************************************************************");
         System.out.println("Trying to balance the cpu/memory consumption across nodes");
         System.out.println("***********************************************************************************");
 
-        Thread.sleep(5000);
+        //Thread.sleep(5000);
 
         triggerWorkLoadBalancer(systemController, 50);
 
@@ -60,7 +67,7 @@ public class Main {
             k8S.cleanSystem();
     }
 
-    private static List<Node> fetchNodes(boolean podsAlreadyCreated){
+    private static List<Node> fetchNodes(boolean podsAlreadyCreated) throws Exception {
         List<Node> nodes = Collections.emptyList();
         if(podsAlreadyCreated){
             //Get the nodes and available pods without creation
@@ -95,9 +102,7 @@ public class Main {
                 }else{
                     k8S.migratePod(migrationPlanDto.getPod().getName(), migrationPlanDto.getToNode());
                 }
-            } catch (ParseException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
