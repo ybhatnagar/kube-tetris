@@ -1,7 +1,7 @@
 package com.kubetetris.interaction;
 
 
-import com.kubetetris.Main;
+import com.kubetetris.TetrisApplication;
 import com.kubetetris.Node;
 import com.kubetetris.Pod;
 import com.kubetetris.loadsimulator.NodeDataGenerator;
@@ -36,7 +36,7 @@ import static com.kubetetris.interaction.utils.UnitParser.cpuUnitParser;
 import static com.kubetetris.interaction.utils.UnitParser.memoryUnitParser;
 import static javax.ws.rs.client.Entity.entity;
 
-public class KubernetesAccessorImpl implements KubernetesAccessor{
+public class KubernetesAccessorImpl{
     private static final Logger log = LoggerFactory.getLogger(KubernetesAccessorImpl.class);
 
     private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -48,7 +48,6 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
     private static final Client client = ClientBuilder.newClient();
     JSONParser parser = new JSONParser();
 
-    @Override
     public List<Node> populateSystem() {
         List<Node> inputNodes = Collections.emptyList();
         try {
@@ -338,7 +337,7 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         JSONParser parser = new JSONParser();
         Object obj = null;
         try {
-            InputStream fileStream = Main.class.getClassLoader().getResourceAsStream("newpod.json");
+            InputStream fileStream = TetrisApplication.class.getClassLoader().getResourceAsStream("newpod.json");
             obj = parser.parse(new InputStreamReader(fileStream));
         } catch (IOException e) {
             e.printStackTrace();

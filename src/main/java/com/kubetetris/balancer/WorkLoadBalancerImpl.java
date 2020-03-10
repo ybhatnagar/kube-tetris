@@ -2,6 +2,7 @@ package com.kubetetris.balancer;
 
 import com.kubetetris.interaction.KubernetesAccessor;
 import com.kubetetris.interaction.KubernetesAccessorImpl;
+import com.kubetetris.interaction.KubernetesAccessorImplV2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,9 +13,13 @@ import java.util.Objects;
 import com.kubetetris.SystemController;
 import com.kubetetris.Node;
 import com.kubetetris.Pod;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.inject.Singleton;
 
+@Service
 @Singleton
 public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
@@ -22,14 +27,15 @@ public class WorkLoadBalancerImpl implements WorkLoadBalancer{
 
     private static int currIterations = 1;
 
-    private KubernetesAccessor kubernetesAccessor;
+    @Autowired
+    private KubernetesAccessorImplV2 kubernetesAccessor;
+
     private SystemController controller;
     private int ITERATIONS;
 
     public WorkLoadBalancerImpl(SystemController controller, int iterations){
         this.ITERATIONS = iterations;
         this.controller = controller;
-        this.kubernetesAccessor = new KubernetesAccessorImpl();
     }
 
     // check if in the system all are on each side of pivot ratio

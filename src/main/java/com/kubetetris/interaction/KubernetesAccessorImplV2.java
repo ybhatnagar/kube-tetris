@@ -7,13 +7,16 @@ import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.apis.CoreV1ApiOverride;
 import io.kubernetes.client.openapi.models.*;
-import io.kubernetes.client.proto.V1;
 import io.kubernetes.client.util.Config;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -23,48 +26,29 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Component
 public class KubernetesAccessorImplV2 implements KubernetesAccessor{
 
     private static long DEFAULT_CPU_HEADROOM = 5000;
     private static long DEFAULT_MEMORY_HEADROOM = 5000;
 
+    @Autowired
     CoreV1Api api;
 
-    {
-        try {
-            ApiClient client = Config.fromConfig("/Users/yashbhatnagar/Downloads/kubeconfig");
-            Configuration.setDefaultApiClient(client);
-            api = new CoreV1Api();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
-
-
-    @Override
-    public List<Node> populateSystem() {
-        return null;
-    }
-
-    @Override
     public void migratePod(String toRemove, String toNode) throws Exception {
 
-        V1Pod podToBeMigrated = api.listPodForAllNamespaces(null, null, "metadata.name=" + toRemove, null, null, null, null, null, null)
-                .getItems().get(0);
+        V1Pod podToBeMigrated = getPod(toRemove);
 
+        log.info("Deleting the pod {} from node {}", toRemove,toNode);
 
-        getPodWithNewAffinity(toNode, podToBeMigrated);
+        deletePod(podToBeMigrated);
 
-        api.deleteNamespacedPod(podToBeMigrated.getMetadata().getName(),podToBeMigrated.getMetadata().getNamespace(),null,null,10,true,null,null);
-
-        api.createNamespacedPod(podToBeMigrated.getMetadata().getNamespace(),podToBeMigrated,null,null,null);
-
-        log.info("Created pod {} on node {}", toRemove,toNode);
-
+        createPod(toNode,podToBeMigrated);
     }
 
-    private void getPodWithNewAffinity(String toNode, V1Pod pod) {
+
+    private void setNewPodAffinity(String toNode, V1Pod pod) {
         V1NodeSelectorRequirement nodeSelectorRequirement = new V1NodeSelectorRequirement();
 
         nodeSelectorRequirement.setKey("kubernetes.io/hostname");
@@ -92,7 +76,6 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
         }
     }
 
-    @Override
     public List<Node> getSystemSnapshot() throws Exception {
 
         //TODO: cache this call for a certain time, and use this in swap, migrate and other calls
@@ -137,7 +120,7 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
         }
     }
 
-    private Long getPodRequestForResource(String resource, V1Pod v1Pod){
+    public Long getPodRequestForResource(String resource, V1Pod v1Pod){
         if(v1Pod.getSpec().getContainers()!=null){
 
             return v1Pod.getSpec().getContainers().stream().mapToLong(container -> {
@@ -166,39 +149,78 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
     }
 
     /**
-     * Thismethod has to be atomic. TODO: Handle atomicity and failure senarios
+     * This method has to be atomic. TODO: Handle atomicity and failure senarios
      * @param podA
      * @param nodeA
      * @param podB
      * @param nodeB
      * @throws Exception
      */
-    @Override
     public void swapPods(Pod podA, Node nodeA, Pod podB, Node nodeB) throws Exception{
 
         migratePod(podA.getName(),nodeB.getName());
 
+        nodeA.removePod(podA);
+        nodeB.addPod(podA);
+
         migratePod(podB.getName(), nodeA.getName());
 
-    }
-
-    @Override
-    public void createPod(String onNode, JSONObject podConfig) throws InterruptedException, ParseException {
+        nodeB.removePod(podB);
+        nodeA.addPod(podB);
 
     }
 
-    @Override
-    public boolean deletePod(String podName) throws InterruptedException {
-        return false;
+    /**
+     * Gets the pod with the given name.
+     * @param name
+     * @return
+     * @throws ApiException
+     */
+    public V1Pod getPod(String name) throws ApiException{
+        V1Pod pod = api.listPodForAllNamespaces(null, null, "metadata.name=" + name, null, null, null, null, null, null)
+                .getItems().get(0);
+
+        return pod;
     }
 
-    @Override
-    public JSONObject readPodToBePlaced(String nodeName, long cpu, long memoryMB) {
-        return null;
+    /**
+     * Responsible for creating a pod on the specified node.
+     * @param onNode
+     * @param toBeCreated
+     * @throws ApiException
+     */
+    public void createPod(String onNode, V1Pod  toBeCreated) throws ApiException {
+
+        setNewPodAffinity(onNode,toBeCreated);
+
+        toBeCreated.getMetadata().setResourceVersion(null);
+        toBeCreated.getSpec().setNodeName(null);
+
+        api.createNamespacedPod(toBeCreated.getMetadata().getNamespace(),toBeCreated,null,null,null);
+
+        log.info("Created pod {} on node {}", toBeCreated,onNode);
     }
 
-    @Override
-    public void cleanSystem() {
 
+    /**
+     * https://github.com/kubernetes-client/java/issues/86. 
+     * @param pod
+     * @return
+     * @throws InterruptedException
+     */
+    public boolean deletePod(V1Pod pod) throws InterruptedException {
+
+        api.getApiClient().getBasePath();
+
+        try {
+            api.deleteNamespacedPod(pod.getMetadata().getName(),pod.getMetadata().getNamespace(),null,null,10,null,null,null);
+        } catch (ApiException e){
+            log.error("Cannot delete pod {} due to error", pod.getMetadata().getName(), e.getMessage());
+            return false;
+        }
+
+        Thread.sleep(15000);
+
+        return true;
     }
 }
