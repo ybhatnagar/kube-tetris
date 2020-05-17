@@ -40,8 +40,8 @@ public class KubernetesAccessorImpl{
     private static final Logger log = LoggerFactory.getLogger(KubernetesAccessorImpl.class);
 
     private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static final int INTERVAL_TIME_MILLIS = 5000;
-    private static final int TIMEOUT = 60000;
+    public static final int INTERVAL_TIME_MILLIS = 5000;
+    public static final int TIMEOUT = 60000;
 
     private static final String KUBE_SYSTEM= "kube-system";
 
@@ -264,13 +264,28 @@ public class KubernetesAccessorImpl{
 
     public void createPod(String onNode, JSONObject podConfig) throws InterruptedException,ParseException {
 
-        log.info("creating on node {} pod with config {}",onNode,podConfig.toString());
+        log.info("creating on node {} pod", onNode);
 
-        Map<String, String> hashm = new HashMap<>();
-        String aux = "{\"nodeAffinity\": {\"requiredDuringSchedulingIgnoredDuringExecution\": {\"nodeSelectorTerms\": [{\"matchExpressions\": [{\"key\": \"kubernetes.io/hostname\", \"operator\": \"In\",\"values\": [\"" + onNode + "\"]}]}]}}}";
-        hashm.put("scheduler.alpha.kubernetes.io/affinity", aux);
-        JSONObject obj = new JSONObject(hashm);
-        ((JSONObject) podConfig.get("metadata")).put("annotations", obj);
+        HashMap<String, Object> matchExpressions = new HashMap<>();
+        matchExpressions.put("key", "kubernetes.io/hostname");
+        matchExpressions.put("operator","In");
+        matchExpressions.put("values", Collections.singletonList(onNode));
+
+        HashMap<String, Object> selectorTerms = new HashMap<>();
+        selectorTerms.put("matchExpressions", Collections.singletonList(matchExpressions));
+
+        HashMap<String, Object> required = new HashMap<>();
+        required.put("nodeSelectorTerms", Collections.singletonList(selectorTerms));
+
+        Map<String,Object> nodeSelector = new HashMap<>();
+        nodeSelector.put("requiredDuringSchedulingIgnoredDuringExecution", required);
+
+        HashMap<String, Object> nodeAffinity = new HashMap<>();
+        nodeAffinity.put("nodeAffinity", nodeSelector);
+
+        JSONObject nodeAffinityObj = new JSONObject(nodeAffinity);
+
+        ((JSONObject) podConfig.get("spec")).put("affinity", nodeAffinityObj);
 
         Response response;
         int timeout;

@@ -1,5 +1,6 @@
 package com.kubetetris;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kubetetris.balancer.WorkLoadBalancer;
 import com.kubetetris.balancer.WorkLoadBalancerImpl;
 import com.kubetetris.interaction.KubernetesAccessor;
@@ -117,16 +118,20 @@ public class TetrisApplication implements ApplicationRunner{
 
         V1Pod pod = k8S.getPod(podName);
 
+        ObjectMapper mapper = new ObjectMapper();
+
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
 
-        Capacity toPlace = new Capacity(k8S.getPodRequestForResource("cpu",pod), k8S.getPodRequestForResource("memory",pod));
+        Capacity toPlace = new Capacity(k8S.getPodRequestForResource("memory",pod), k8S.getPodRequestForResource("cpu",pod));
 
         List<MigrationPlanDto> planDtoList = capacityPlacementService.placeMyWorkload(toPlace, systemController.getNodes());
+        boolean deleteResult = k8S.deletePod(podName);
+
         planDtoList.forEach(migrationPlanDto -> {
 
             try {
                 if ("-1".equals(migrationPlanDto.getPod().getId())){
-                    k8S.createPod(migrationPlanDto.getToNode(),pod);
+                    k8S.createPod(migrationPlanDto.getToNode(),mapper.writeValueAsString(pod));
                 }else{
                     k8S.migratePod(migrationPlanDto.getPod().getName(), migrationPlanDto.getToNode());
                 }

@@ -1,5 +1,6 @@
 package com.kubetetris.interaction;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kubetetris.Node;
 import com.kubetetris.Pod;
 import com.kubetetris.Resource;
@@ -13,10 +14,18 @@ import io.kubernetes.client.util.Config;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -24,6 +33,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.kubetetris.interaction.KubernetesAccessorImpl.INTERVAL_TIME_MILLIS;
+import static com.kubetetris.interaction.KubernetesAccessorImpl.TIMEOUT;
 
 @Slf4j
 @Component
@@ -35,6 +47,13 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
     @Autowired
     CoreV1Api api;
 
+    @Value("${kube.proxy.url}")
+    String kubeProxyBaseUrl;
+
+    private static final Client client = ClientBuilder.newClient();
+
+    private ObjectMapper mapper = new ObjectMapper();
+
 
     public void migratePod(String toRemove, String toNode) throws Exception {
 
@@ -42,9 +61,9 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
 
         log.info("Deleting the pod {} from node {}", toRemove,toNode);
 
-        deletePod(podToBeMigrated);
+        deletePod(podToBeMigrated.getMetadata().getName());
 
-        createPod(toNode,podToBeMigrated);
+        createPod(toNode,mapper.writeValueAsString(podToBeMigrated));
     }
 
 
@@ -105,7 +124,9 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
 
             Pod po = new Pod(v1Pod.getMetadata().getName(),v1Pod.getMetadata().getName(),memRequest,cpuRequest,v1Pod.getMetadata().getNamespace().equals("kube-system"));
 
-            nodeMap.get(v1Pod.getSpec().getNodeName()).addPod(po);
+            if(!(v1Pod.getStatus() == null || "Pending".equals(v1Pod.getStatus().getPhase()))){
+                nodeMap.get(v1Pod.getSpec().getNodeName()).addPod(po);
+            }
         });
 
         return new ArrayList<>(nodeMap.values());
@@ -113,7 +134,12 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
 
     private BigDecimal getNodeResoures(String resource, V1Node v1Node){
         try{
-            return v1Node.getStatus().getAllocatable().get(resource).getNumber();
+            BigDecimal number = v1Node.getStatus().getAllocatable().get(resource).getNumber();
+            //Explicit handling cases where node allocatable returns integer like 2 instead of 2000 due to lack of any suffix
+            if(resource.equals("cpu")){
+                return number.multiply(new BigDecimal(1000));
+            }
+            return number;
 
         }catch (NullPointerException ex){
             throw new RuntimeException("Node does not has this resource");
@@ -126,7 +152,11 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
             return v1Pod.getSpec().getContainers().stream().mapToLong(container -> {
                 if(container.getResources()!=null && container.getResources().getRequests()!=null && container.getResources().getRequests().get(resource) !=null){
                     log.info("pod =" +  v1Pod.getMetadata().getName() + " container = " + container.getName());
-                    return container.getResources().getRequests().get(resource).getNumber().longValue();
+                    Double resourceValue = container.getResources().getRequests().get(resource).getNumber().doubleValue();
+                    if(resource.equals("cpu")){
+                        return Double.valueOf(1000 * resourceValue).longValue();
+                    }
+                    return resourceValue.longValue();
                 } else{
                     //TODO: use the utilization to get the last hour usage and consider the median value
 
@@ -137,6 +167,12 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
             //TODO: use the utilization to get the last hour usage and consider the median value
             return 0L;
         }
+    }
+
+    private Long convertCpuToMillicores(Double cpu){
+        Double cpuInMillicores = 1000 * cpu;
+
+        return cpuInMillicores.longValue();
     }
 
     /**
@@ -177,19 +213,26 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
      * @throws ApiException
      */
     public V1Pod getPod(String name) throws ApiException{
-        V1Pod pod = api.listPodForAllNamespaces(null, null, "metadata.name=" + name, null, null, null, null, null, null)
-                .getItems().get(0);
+        List<V1Pod> pods = api.listPodForAllNamespaces(null, null, "metadata.name=" + name, null, null, null, null, null, null)
+                .getItems();
 
-        return pod;
+        if(pods.size()==0){
+            throw new IllegalArgumentException("No pod exists with the given Name");
+        }else {
+            return pods.get(0);
+        }
+
     }
 
     /**
      * Responsible for creating a pod on the specified node.
      * @param onNode
-     * @param toBeCreated
+     * @param podJson
      * @throws ApiException
      */
-    public void createPod(String onNode, V1Pod  toBeCreated) throws ApiException {
+    public void createPod(String onNode, String podJson) throws Exception {
+
+        V1Pod toBeCreated = mapper.readValue(podJson,V1Pod.class);
 
         setNewPodAffinity(onNode,toBeCreated);
 
@@ -203,14 +246,12 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
 
 
     /**
-     * https://github.com/kubernetes-client/java/issues/86. 
+     * Cannot use this because of https://github.com/kubernetes-client/java/issues/86.
      * @param pod
      * @return
      * @throws InterruptedException
      */
     public boolean deletePod(V1Pod pod) throws InterruptedException {
-
-        api.getApiClient().getBasePath();
 
         try {
             api.deleteNamespacedPod(pod.getMetadata().getName(),pod.getMetadata().getNamespace(),null,null,10,null,null,null);
@@ -222,5 +263,56 @@ public class KubernetesAccessorImplV2 implements KubernetesAccessor{
         Thread.sleep(15000);
 
         return true;
+    }
+
+
+    public boolean deletePod(String podName) throws InterruptedException {
+        //deleting the pod from current node
+        log.info("deleting the pod {} from current node" ,podName );
+
+        WebTarget webTarget;
+        Invocation.Builder invocationBuilder;
+        Response response;
+
+        webTarget = client.target(kubeProxyBaseUrl + "/api/v1/namespaces/default/pods/"+podName);
+        invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+        response = invocationBuilder.method(HttpMethod.DELETE, null, Response.class);
+
+        int timeout=TIMEOUT;
+        if(response.getStatus()==200){
+            Thread.sleep(INTERVAL_TIME_MILLIS);
+            log.info("Pod {} deleted from node.Waiting for it to complete.", podName);
+
+            while (timeout>=0 && !getDeleteStatus(podName)) {
+                log.info("delete operation not yet completed, sleeping for {} milliseconds",INTERVAL_TIME_MILLIS);
+                Thread.sleep(INTERVAL_TIME_MILLIS);
+                timeout-=INTERVAL_TIME_MILLIS;
+            }
+            if(timeout<0){
+                log.error("delete timed out, Inconsistent state!!!! please revert the changes done till now, from the stack");
+                throw new IllegalStateException("System is in inconsistent state, halting now.");
+            }
+            else{
+                return true;
+            }
+
+        }else{
+            log.error("pod delete failed from original node. Stopping");
+            throw new IllegalStateException("Pod delete failed from original pod.");
+        }
+    }
+
+    private boolean getDeleteStatus(String podName){
+        WebTarget webTarget = client.target(kubeProxyBaseUrl +"/api/v1/namespaces/default/pods/" + podName);
+        Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+        Response response = invocationBuilder.method(HttpMethod.GET, null, Response.class);
+
+        if(response.getStatus()==404){
+            return true;
+        }else{
+            log.info("pod is not ready");
+            return false;
+        }
+
     }
 }

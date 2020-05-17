@@ -14,11 +14,32 @@ Tetris also has a feature to avoid such a resource fragmentation by periodically
 
 ## Features
 
+- Tetris can "try" to fit a given pod which is in pending state due to lack of available resources (cpu/memory).
+If it is possible, it tries to perform strategic migrations of one or more pods to consolidate available resources together on a given node, where the pod can be placed.
+
+- Tetris can "try" to avoid fragmentation by keeping a healthy balance of different type of resource consuming workloads on a node, (Currently supporting cpu/memory)
 
 
 ## Prerequisites
 
+- Java 8 or higher
+- Kubeconfig of the kubernetes cluster
+- Kube proxy to access the resources and perform delete/create permissions
+
 
 ## Setup and Installation
+
+./gradlew shadowJar
+cd build/libs
+
+- For placing a pod named "zombie" which is currently pending:
+
+java -jar kube-tetris-1.0-SNAPSHOT-all.jar -Dplace -Dpod=zombie -DproxyUrl=http://localhost:9900
+
+Note that only one pod should be pending in the cluster due to resources.
+
+- For attempting balancing of resources in the nodes:
+
+java -jar kube-tetris-1.0-SNAPSHOT-all.jar kube-tetris-1.0-SNAPSHOT-all.jar -Dbalance -Diterations=50
 
 

@@ -14,8 +14,8 @@ public interface KubernetesAccessor {
     void migratePod(String toRemove, String toNode) throws Exception;
     List<Node> getSystemSnapshot() throws Exception;
     void swapPods(Pod podA, Node nodeA, Pod podB, Node nodeB) throws Exception;
-    void createPod(String onNode, V1Pod toBeCreated) throws Exception;
-    boolean deletePod(V1Pod pod) throws Exception;
-    V1Pod getPod(String name) throws ApiException;
+    void createPod(String onNode, String toBeCreatedPodJson) throws Exception;
+    boolean deletePod(String podName) throws Exception;
+    V1Pod getPod(String name) throws Exception;
     Long getPodRequestForResource(String resource, V1Pod v1Pod);
 }
