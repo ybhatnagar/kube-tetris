@@ -1,14 +1,12 @@
 package com.kubetetris.interaction;
 
 
-import com.kubetetris.Main;
+import com.kubetetris.TetrisApplication;
 import com.kubetetris.Node;
 import com.kubetetris.Pod;
 import com.kubetetris.loadsimulator.NodeDataGenerator;
 
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.util.Config;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -34,21 +32,22 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static com.kubetetris.interaction.utils.UnitParser.cpuUnitParser;
+import static com.kubetetris.interaction.utils.UnitParser.memoryUnitParser;
 import static javax.ws.rs.client.Entity.entity;
 
-public class KubernetesAccessorImpl implements KubernetesAccessor{
+public class KubernetesAccessorImpl{
     private static final Logger log = LoggerFactory.getLogger(KubernetesAccessorImpl.class);
 
     private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static final int INTERVAL_TIME_MILLIS = 5000;
-    private static final int TIMEOUT = 60000;
+    public static final int INTERVAL_TIME_MILLIS = 5000;
+    public static final int TIMEOUT = 60000;
 
     private static final String KUBE_SYSTEM= "kube-system";
 
     private static final Client client = ClientBuilder.newClient();
     JSONParser parser = new JSONParser();
 
-    @Override
     public List<Node> populateSystem() {
         List<Node> inputNodes = Collections.emptyList();
         try {
@@ -172,15 +171,15 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         return nodes;
     }
 
-    public void swapPods(String podA, String nodeA, String podB, String nodeB){
+    public void swapPods(Pod podA, Node nodeA, Pod podB, Node nodeB){
         try {
             //delete podA from nodeA
             //add podB to nodeA
-            migratePod(podA, nodeB);
+            migratePod(podA.getName(), nodeB.getName());
 
             //delete podB from nodeB
             //add podA to nodeB
-            migratePod(podB, nodeA);
+            migratePod(podB.getName(), nodeA.getName());
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -265,13 +264,28 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
     public void createPod(String onNode, JSONObject podConfig) throws InterruptedException,ParseException {
 
-        log.info("creating on node {} pod with config {}",onNode,podConfig.toString());
+        log.info("creating on node {} pod", onNode);
 
-        Map<String, String> hashm = new HashMap<>();
-        String aux = "{\"nodeAffinity\": {\"requiredDuringSchedulingIgnoredDuringExecution\": {\"nodeSelectorTerms\": [{\"matchExpressions\": [{\"key\": \"kubernetes.io/hostname\", \"operator\": \"In\",\"values\": [\"" + onNode + "\"]}]}]}}}";
-        hashm.put("scheduler.alpha.kubernetes.io/affinity", aux);
-        JSONObject obj = new JSONObject(hashm);
-        ((JSONObject) podConfig.get("metadata")).put("annotations", obj);
+        HashMap<String, Object> matchExpressions = new HashMap<>();
+        matchExpressions.put("key", "kubernetes.io/hostname");
+        matchExpressions.put("operator","In");
+        matchExpressions.put("values", Collections.singletonList(onNode));
+
+        HashMap<String, Object> selectorTerms = new HashMap<>();
+        selectorTerms.put("matchExpressions", Collections.singletonList(matchExpressions));
+
+        HashMap<String, Object> required = new HashMap<>();
+        required.put("nodeSelectorTerms", Collections.singletonList(selectorTerms));
+
+        Map<String,Object> nodeSelector = new HashMap<>();
+        nodeSelector.put("requiredDuringSchedulingIgnoredDuringExecution", required);
+
+        HashMap<String, Object> nodeAffinity = new HashMap<>();
+        nodeAffinity.put("nodeAffinity", nodeSelector);
+
+        JSONObject nodeAffinityObj = new JSONObject(nodeAffinity);
+
+        ((JSONObject) podConfig.get("spec")).put("affinity", nodeAffinityObj);
 
         Response response;
         int timeout;
@@ -321,33 +335,6 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         }
     }
 
-    private long memoryUnitParser(String toBeConverted){
-        if(toBeConverted==null){
-            return 0;
-        }
-        if(toBeConverted.endsWith("Mi")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString());
-        }
-        else if(toBeConverted.endsWith("Gi")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())*1024;
-        }
-        else if(toBeConverted.endsWith("Ki")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-2).toString())/1024;
-        }
-        else return Long.valueOf(toBeConverted);
-    }
-
-    private long cpuUnitParser(String toBeConverted){
-        if(toBeConverted==null){
-            return 0;
-        }
-        if(toBeConverted.endsWith("m")){
-            return Long.valueOf(toBeConverted.subSequence(0,toBeConverted.length()-1).toString());
-        }
-        else{
-            return Long.valueOf(toBeConverted)*1000;
-        }
-    }
 
     private void createSystemFromFixed(Node simulated, Node actual){
         simulated.getPods().values().forEach(pod ->{
@@ -365,7 +352,7 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         JSONParser parser = new JSONParser();
         Object obj = null;
         try {
-            InputStream fileStream = Main.class.getClassLoader().getResourceAsStream("newpod.json");
+            InputStream fileStream = TetrisApplication.class.getClassLoader().getResourceAsStream("newpod.json");
             obj = parser.parse(new InputStreamReader(fileStream));
         } catch (IOException e) {
             e.printStackTrace();

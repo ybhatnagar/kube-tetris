@@ -42,13 +42,11 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-actuator:2.1.2.RELEASE")
     compile("org.springframework.boot:spring-boot-starter-web:2.1.2.RELEASE")
 
-    compile 'io.kubernetes:client-java:5.0.0'
+    compile 'io.kubernetes:client-java:7.0.0'
 
     compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
     compileOnly "org.projectlombok:lombok:1.16.10"
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.0.1'
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
     compile group: 'org.jboss.resteasy', name: 'resteasy-jackson-provider', version: '3.5.1.Final'
     //compile group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-json-provider', version: '2.9.5'
     compile group: 'org.jboss.resteasy', name: 'resteasy-client', version: '3.5.1.Final'
