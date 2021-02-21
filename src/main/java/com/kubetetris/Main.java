@@ -31,15 +31,18 @@ public class Main {
         //Fetch Nodes from K8S
         k8S = new KubernetesAccessorImpl();
 
+        //k8S.deletePod("zombie");
+
         //If the command line arguments contains the -podsAlreadyCreated switch anywhere, the switchPresent() method will return true.
         //If not, the switchPresent() method will return false.
         boolean podsAlreadyCreated = cliArgs.switchPresent("-podsAlreadyCreated");
-        List<Node> inputNodes = fetchNodes(podsAlreadyCreated);
+        List<Node> inputNodes = fetchNodes(true);
 
         //Update the system snapshot with latest nodes update with pods
         inputNodes.forEach(node -> systemController.addNode(node));
 
-        placeMyWorkload(systemController);
+
+         //placeMyWorkload(systemController);
 
         System.out.println("***********************************************************************************");
         System.out.println("Trying to balance the cpu/memory consumption across nodes");
@@ -47,7 +50,7 @@ public class Main {
 
         Thread.sleep(5000);
 
-        triggerWorkLoadBalancer(systemController, 50);
+        triggerWorkLoadBalancer(systemController, 1);
 
         try {
             Thread.sleep(10000);
@@ -77,14 +80,14 @@ public class Main {
     }
 
     private static void triggerWorkLoadBalancer(SystemController systemController, int iterations){
-        WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(systemController, 50);
+        WorkLoadBalancer workLoadBalancer = new WorkLoadBalancerImpl(systemController, iterations);
         workLoadBalancer.balance();
     }
 
     private static void placeMyWorkload(SystemController systemController){
         CapacityPlacementService capacityPlacementService = new CapacityPlacementServiceImpl();
 
-        Capacity toPlace = new Capacity(1100, 200);
+        Capacity toPlace = new Capacity(700, 250);
         List<MigrationPlanDto> planDtoList = capacityPlacementService.placeMyWorkload(toPlace, systemController.getNodes());
         planDtoList.forEach(migrationPlanDto -> {
 

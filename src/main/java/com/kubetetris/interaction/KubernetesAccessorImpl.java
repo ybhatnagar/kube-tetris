@@ -1,29 +1,5 @@
 package com.kubetetris.interaction;
 
-
-import com.kubetetris.Main;
-import com.kubetetris.Node;
-import com.kubetetris.Pod;
-import com.kubetetris.loadsimulator.NodeDataGenerator;
-
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.util.Config;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.json.simple.parser.ParseException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,6 +9,24 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import com.kubetetris.Main;
+import com.kubetetris.Node;
+import com.kubetetris.Pod;
+import com.kubetetris.loadsimulator.NodeDataGenerator;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static javax.ws.rs.client.Entity.entity;
 
@@ -72,8 +66,12 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
     public List<Node> getSystemSnapshot() throws ParseException{
         Map<String, Node> nodes = getNodesInSystem();
+
         nodes = fillNodesWithPods("default",nodes); // default
         nodes = fillNodesWithPods(KUBE_SYSTEM,nodes);
+
+        nodes.remove("blr-3rd-2-dhcp285");
+
         return new ArrayList<>(nodes.values());
     }
 
@@ -149,9 +147,14 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
                 Long memRequests = 0L;
 
                 while (containerIterator.hasNext()) {
-                    JSONObject requests = (JSONObject) ((JSONObject) containerIterator.next().get("resources")).get("requests");
-                    cpuRequests += cpuUnitParser((String) requests.get("cpu"));
-                    memRequests += memoryUnitParser((String) requests.get("memory"));
+                    JSONObject jsonObject = containerIterator.next();
+                    JSONObject requests = (JSONObject) ((JSONObject) jsonObject.get("resources")).get("requests");
+
+                    if(null != requests){
+                        cpuRequests += cpuUnitParser((String) requests.get("cpu"));
+                        memRequests += memoryUnitParser((String) requests.get("memory"));
+                    }
+
                 }
 
                 Pod currentPod;
@@ -172,15 +175,24 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         return nodes;
     }
 
-    public void swapPods(String podA, String nodeA, String podB, String nodeB){
+    public void swapPods(Pod podA, Node nodeA, Pod podB, Node nodeB){
         try {
             //delete podA from nodeA
             //add podB to nodeA
-            migratePod(podA, nodeB);
+            migratePod(podA.getName(), nodeB.getName());
+
+//            podA.setParentNode(nodeB);
+//            nodeA.removePod(podA);
+//            nodeB.addPod(podA);
 
             //delete podB from nodeB
             //add podA to nodeB
-            migratePod(podB, nodeA);
+            migratePod(podB.getName(), nodeA.getName());
+
+//            podB.setParentNode(nodeA);
+//            nodeB.removePod(podB);
+//            nodeA.addPod(podB);
+
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -265,13 +277,29 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
 
     public void createPod(String onNode, JSONObject podConfig) throws InterruptedException,ParseException {
 
-        log.info("creating on node {} pod with config {}",onNode,podConfig.toString());
+        log.info("creating on node {} pod", onNode);
 
-        Map<String, String> hashm = new HashMap<>();
-        String aux = "{\"nodeAffinity\": {\"requiredDuringSchedulingIgnoredDuringExecution\": {\"nodeSelectorTerms\": [{\"matchExpressions\": [{\"key\": \"kubernetes.io/hostname\", \"operator\": \"In\",\"values\": [\"" + onNode + "\"]}]}]}}}";
-        hashm.put("scheduler.alpha.kubernetes.io/affinity", aux);
-        JSONObject obj = new JSONObject(hashm);
-        ((JSONObject) podConfig.get("metadata")).put("annotations", obj);
+        HashMap<String, Object> matchExpressions = new HashMap<>();
+        matchExpressions.put("key", "kubernetes.io/hostname");
+        matchExpressions.put("operator","In");
+        matchExpressions.put("values", Collections.singletonList(onNode));
+
+        HashMap<String, Object> selectorTerms = new HashMap<>();
+        selectorTerms.put("matchExpressions", Collections.singletonList(matchExpressions));
+
+        HashMap<String, Object> required = new HashMap<>();
+        required.put("nodeSelectorTerms", Collections.singletonList(selectorTerms));
+
+        Map<String,Object> nodeSelector = new HashMap<>();
+        nodeSelector.put("requiredDuringSchedulingIgnoredDuringExecution", required);
+
+        HashMap<String, Object> nodeAffinity = new HashMap<>();
+        nodeAffinity.put("nodeAffinity", nodeSelector);
+
+        JSONObject nodeAffinityObj = new JSONObject(nodeAffinity);
+
+
+        ((JSONObject) podConfig.get("spec")).put("affinity", nodeAffinityObj);
 
         Response response;
         int timeout;
@@ -374,7 +402,7 @@ public class KubernetesAccessorImpl implements KubernetesAccessor{
         }
         try {
             if(obj != null){
-                String podName = randomAlpha(10).toLowerCase();
+                String podName = "zombie";
                 String jsonStr = obj.toString().replace("$PODNAME", podName).replace("$CPU",""+(cpu/2)).replace("$MEM",""+(memoryMB)/2);
                 return (JSONObject) parser.parse(jsonStr);
             }

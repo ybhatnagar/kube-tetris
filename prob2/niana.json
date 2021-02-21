@@ -1,0 +1,117 @@
+{
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+        "annotations": {
+            "cni.projectcalico.org/podIP": "192.168.2.15/32"
+        },
+        "creationTimestamp": null,
+        "name": "carrot",
+        "selfLink": "/api/v1/namespaces/default/pods/niana"
+    },
+    "spec": {
+        "affinity": {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {
+                                    "key": "kubernetes.io/hostname",
+                                    "operator": "In",
+                                    "values": [
+                                        "blr2-3rd-flr-dhcp-10-112-82-143"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "containers": [
+            {
+                "env": [
+                    {
+                        "name": "MYSQL_ROOT_PASSWORD",
+                        "value": "password"
+                    }
+                ],
+                "image": "mysql",
+                "imagePullPolicy": "Always",
+                "name": "ngnix",
+                "resources": {
+                    "requests": {
+                        "cpu": "150m",
+                        "memory": "250Mi"
+                    }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                    {
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                        "name": "default-token-9gsh4",
+                        "readOnly": true
+                    }
+                ]
+            },
+            {
+                "image": "wordpress",
+                "imagePullPolicy": "Always",
+                "name": "wp",
+                "resources": {
+                    "requests": {
+                        "cpu": "150m",
+                        "memory": "250Mi"
+                    }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                    {
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                        "name": "default-token-9gsh4",
+                        "readOnly": true
+                    }
+                ]
+            }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+            {
+                "effect": "NoExecute",
+                "key": "node.kubernetes.io/not-ready",
+                "operator": "Exists",
+                "tolerationSeconds": 300
+            },
+            {
+                "effect": "NoExecute",
+                "key": "node.kubernetes.io/unreachable",
+                "operator": "Exists",
+                "tolerationSeconds": 300
+            }
+        ],
+        "volumes": [
+            {
+                "name": "default-token-9gsh4",
+                "secret": {
+                    "defaultMode": 420,
+                    "secretName": "default-token-9gsh4"
+                }
+            }
+        ]
+    },
+    "status": {
+        "phase": "Pending",
+        "qosClass": "Burstable"
+    }
+}

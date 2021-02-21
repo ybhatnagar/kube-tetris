@@ -26,14 +26,7 @@
             "memory": "$MEMMi"
           }
         },
-        "terminationMessagePath": "/dev/termination-log",
-        "volumeMounts": [
-          {
-            "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-            "name": "default-token-l4qmt",
-            "readOnly": true
-          }
-        ]
+        "terminationMessagePath": "/dev/termination-log"
       },
       {
         "image": "wordpress",
@@ -45,14 +38,7 @@
             "memory": "$MEMMi"
           }
         },
-        "terminationMessagePath": "/dev/termination-log",
-        "volumeMounts": [
-          {
-            "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-            "name": "default-token-l4qmt",
-            "readOnly": true
-          }
-        ]
+        "terminationMessagePath": "/dev/termination-log"
       }
     ],
     "dnsPolicy": "ClusterFirst",
@@ -60,15 +46,6 @@
     "securityContext": {},
     "serviceAccount": "default",
     "serviceAccountName": "default",
-    "terminationGracePeriodSeconds": 30,
-    "volumes": [
-      {
-        "name": "default-token-l4qmt",
-        "secret": {
-          "defaultMode": 420,
-          "secretName": "default-token-l4qmt"
-        }
-      }
-    ]
+    "terminationGracePeriodSeconds": 30
   }
 }
