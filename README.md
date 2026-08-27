@@ -1,45 +1,42 @@
-# Kube-tetris
+# Kube Tetris
 
-[![](https://github.com/ybhatnagar/kube-tetris/workflows/Java%20CI/badge.svg)]
-(https://github.com/ybhatnagar/kube-tetris/actions)
+Human-in-the-loop pod-migration tool for resource-crunched Kubernetes clusters.
+An occasional, invasive-by-consent advisor — **not** an always-on custom scheduler.
 
+Two recommendation engines run over a live cluster snapshot:
 
-Tetris is an extension to kubernetes that attempts to handle the fragmentation of available resources on the nodes. It provides a plan for pod migrations that will consolidate the chunks of available resouces across nodes together. This will help in more efficient utilization of cluster resources. 
+- **Scheduler** — when a `Pending` pod can't fit on any single node though the cluster
+  has the capacity in total, compute the minimum set of pod moves that frees a node,
+  then place.
+- **Balancer** — when nodes are CPU/mem imbalanced, compute the swap that reduces the
+  system entropy `Σ|pivot − node_cpu/mem_ratio|` most.
 
-Tetris also has a feature to avoid such a resource fragmentation by periodically performing a swap or migration of pods across nodes to keep a healthy balance of different type of resouce requesting pods together on a node.
+Every action is surfaced to the operator with its computed effect; they apply one at a
+time, and the tool re-snapshots between actions.
 
-## Overview
-- Tetris uses the specified pod requests and limits to understand the resource requirements.
-- It takes a snapshot of the kubernetes cluster in memory before any migration.
+## Repo layout
 
-## Features
+```
+engine/    # pure JVM engine over a cluster snapshot (algorithms + tests)
+```
 
-- Tetris can "try" to fit a given pod which is in pending state due to lack of available resources (cpu/memory).
-If it is possible, it tries to perform strategic migrations of one or more pods to consolidate available resources together on a given node, where the pod can be placed.
+Additional modules (collector, executor, UI, deploy chart) will land in future work.
 
-- Tetris can "try" to avoid fragmentation by keeping a healthy balance of different type of resource consuming workloads on a node, (Currently supporting cpu/memory)
+## Build (engine)
 
+```bash
+cd engine
+./gradlew test
+```
 
-## Prerequisites
+Requires JDK ≥ 21 (tested on JDK 25/26). The Gradle wrapper is pinned to 9.7.1. The
+engine has no cluster/network dependencies — it's a pure library over synthetic
+snapshot fixtures.
 
-- Java 8 or higher
-- Kubeconfig of the kubernetes cluster
-- Kube proxy to access the resources and perform delete/create permissions
+## Lineage
 
-
-## Setup and Installation
-
-./gradlew shadowJar
-cd build/libs
-
-- For placing a pod named "zombie" which is currently pending:
-
-java -jar kube-tetris-1.0-SNAPSHOT-all.jar -Dplace -Dpod=zombie -DproxyUrl=http://localhost:9900
-
-Note that only one pod should be pending in the cluster due to resources.
-
-- For attempting balancing of resources in the nodes:
-
-java -jar kube-tetris-1.0-SNAPSHOT-all.jar kube-tetris-1.0-SNAPSHOT-all.jar -Dbalance -Diterations=50
-
-
+The engine ports the 2018 prototype's algorithms (`CapacityPlacementServiceImpl` +
+`SystemControllerImpl` + `WorkLoadBalancerImpl`) into pure, I/O-free functions with
+several correctness fixes to the recursion, priority ordering, and eligibility
+filters. The balancer no longer executes swaps inline — it only computes an ordered
+swap list; the executor path is out of scope for this module.
