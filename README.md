@@ -1,45 +1,63 @@
-# Kube-tetris
+# Kube Tetris
 
-[![](https://github.com/ybhatnagar/kube-tetris/workflows/Java%20CI/badge.svg)]
-(https://github.com/ybhatnagar/kube-tetris/actions)
+Human-in-the-loop pod-migration tool for resource-crunched Kubernetes clusters.
+An occasional, invasive-by-consent advisor — **not** an always-on custom scheduler.
 
+Two recommendation engines run over a live cluster snapshot:
 
-Tetris is an extension to kubernetes that attempts to handle the fragmentation of available resources on the nodes. It provides a plan for pod migrations that will consolidate the chunks of available resouces across nodes together. This will help in more efficient utilization of cluster resources. 
+- **Scheduler** — when a `Pending` pod can't fit on any single node though the cluster
+  has the capacity in total, compute the minimum set of pod moves that frees a node,
+  then place.
+- **Balancer** — when nodes are CPU/mem imbalanced, compute the swap that reduces the
+  system entropy `Σ|pivot − node_cpu/mem_ratio|` most.
 
-Tetris also has a feature to avoid such a resource fragmentation by periodically performing a swap or migration of pods across nodes to keep a healthy balance of different type of resouce requesting pods together on a node.
+Every action is surfaced to the operator with its computed effect; they apply one at a
+time, and the tool re-snapshots between actions.
 
-## Overview
-- Tetris uses the specified pod requests and limits to understand the resource requirements.
-- It takes a snapshot of the kubernetes cluster in memory before any migration.
+## Repo layout
 
-## Features
+```
+engine/       # M1 — pure JVM engine over SnapshotView (this milestone)
+collector/    # M3 — Go client-go collector → SnapshotDTO      (not built)
+executor/     # M5 — Eviction + steer + verify + rollback     (not built)
+ui/           # M4 — single-file SPA + nginx                   (not built)
+deploy/       # M6 — Helm chart + scoped RBAC                  (not built)
+design-docs/  # locked design (build-plan doc set)
+```
 
-- Tetris can "try" to fit a given pod which is in pending state due to lack of available resources (cpu/memory).
-If it is possible, it tries to perform strategic migrations of one or more pods to consolidate available resources together on a given node, where the pod can be placed.
+Modules bind only to the cross-module contract in
+[design-docs/04-schema-and-api.md](design-docs/04-schema-and-api.md).
 
-- Tetris can "try" to avoid fragmentation by keeping a healthy balance of different type of resource consuming workloads on a node, (Currently supporting cpu/memory)
+## Status
 
+- **M1 — Engine core (pure, tested).** ✅ Shipped. See
+  [design-docs/M1-NOTES.md](design-docs/M1-NOTES.md).
+- M2 — API + snapshot contract. Not started.
+- M3 — Collector. Not started.
+- M4 — UI. Not started.
+- M5 — Executor + rollback. Not started.
+- M6 — Safety hardening + deploy. Not started.
 
-## Prerequisites
+## Design
 
-- Java 8 or higher
-- Kubeconfig of the kubernetes cluster
-- Kube proxy to access the resources and perform delete/create permissions
+Start at [CLAUDE.md](CLAUDE.md), then
+[design-docs/08-implementation-handoff.md](design-docs/08-implementation-handoff.md).
+The full design set is in [`design-docs/`](design-docs/).
 
+## Build (engine)
 
-## Setup and Installation
+```bash
+cd engine
+./gradlew test
+```
 
-./gradlew shadowJar
-cd build/libs
+Requires JDK ≥ 21 (tested on JDK 25/26). The Gradle wrapper is pinned to 9.7.1. The
+engine has no cluster/network dependencies — it's a pure library over synthetic
+`SnapshotView` fixtures for M1.
 
-- For placing a pod named "zombie" which is currently pending:
+## Lineage
 
-java -jar kube-tetris-1.0-SNAPSHOT-all.jar -Dplace -Dpod=zombie -DproxyUrl=http://localhost:9900
-
-Note that only one pod should be pending in the cluster due to resources.
-
-- For attempting balancing of resources in the nodes:
-
-java -jar kube-tetris-1.0-SNAPSHOT-all.jar kube-tetris-1.0-SNAPSHOT-all.jar -Dbalance -Diterations=50
-
-
+The engine ports the 2018 prototype's algorithms (`CapacityPlacementServiceImpl` +
+`SystemControllerImpl` + `WorkLoadBalancerImpl`) into pure, I/O-free functions with
+several correctness fixes. See [design-docs/M1-NOTES.md](design-docs/M1-NOTES.md) for
+the bug list and the semantic changes.
