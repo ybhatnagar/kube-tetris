@@ -7,10 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Per-plan mutable working state for a node. Never mutate a NodeState that came from the
- * snapshot directly — {@link WorkingCluster#snapshot} clones on entry. Ported from the
- * 2018 Node.addPod/removePod but decoupled from k8s I/O and stripped of the back-pointer
- * to the pod's parent node (that alias was a subtle bug source during recursion).
+ * Per-plan mutable working state for a node. Never mutate a {@code NodeState} that
+ * came from the snapshot directly — {@link WorkingCluster} clones on entry. The state
+ * holds pods by uid and updates {@code free} on every add/remove.
  */
 public final class NodeState {
 

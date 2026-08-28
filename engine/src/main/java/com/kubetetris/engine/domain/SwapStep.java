@@ -1,6 +1,6 @@
 package com.kubetetris.engine.domain;
 
-/** One swap in a balancer plan. Mirrors SwapDTO (doc 04). */
+/** One swap in a balancer plan. */
 public record SwapStep(
         PodSpec podA, String nodeA,
         PodSpec podB, String nodeB,

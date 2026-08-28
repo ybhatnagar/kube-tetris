@@ -32,7 +32,7 @@ class SchedulerTest {
 
         assertTrue(result.feasible(), () -> "checkout must be feasible; reason=" + result.reason());
         assertEquals(FeasibilityResult.Strategy.SINGLE, result.strategy());
-        assertEquals(1, result.moves(), "deck example is a single-move plan");
+        assertEquals(1, result.moves(), "expected a single-move plan for this fixture");
         assertFalse(result.touchesNonReversible(),
                 "single-move plan must not touch the StatefulSet 'ledger'");
         assertNotNull(result.targetNode());

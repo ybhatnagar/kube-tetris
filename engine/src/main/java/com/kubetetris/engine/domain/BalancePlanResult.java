@@ -2,7 +2,7 @@ package com.kubetetris.engine.domain;
 
 import java.util.List;
 
-/** Engine-side mirror of BalancePlanDTO (doc 04). Swaps are ordered best-first. */
+/** Engine-side balancer plan. Swaps are ordered best-first. */
 public record BalancePlanResult(
         double baseEntropy,
         double projectedEntropy,

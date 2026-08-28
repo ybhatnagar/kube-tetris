@@ -15,23 +15,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Pure entry point over a {@link SnapshotView}. Ported from the 2018
- * {@code WorkLoadBalancerImpl} with the following changes:
+ * Pure entry point over a {@link SnapshotView}. Computes an ordered best-first swap
+ * list that reduces system entropy toward zero. No cluster I/O — the executor path is
+ * out of scope for this class.
  *
- *   - ALL I/O stripped. No {@code kubernetesAccessor}, no {@code Thread.sleep}. The
- *     balancer only computes an ordered swap list; the executor (M5) will apply.
- *   - Best-swap enumeration replaces first-improving. Doc 06 §3 asks for a best-first
- *     ordered list, and the UI mockup's {@code bestSwap} enumerates every (i,j,pa,pb).
- *     First-improving picks {@code ranker⇄session-store} (entropy drop 0.43), best-swap
- *     picks {@code ranker⇄thumbnailer} (0.52) — the latter matches the deck example
- *     "entropy ~2.81 → 0.29". Enumeration is O(nodes^2 × pods^2) which is fine for
- *     realistic clusters (a few hundred candidate pods).
- *   - Reversibility filter applied per config; non-reversible pods excluded by default.
- *   - Session-level thrash guard: never re-emit or reverse a swap accepted earlier
- *     in the same planning session.
- *   - minImprovementPct + epsilon threshold applied per swap.
- *   - Static {@code currIterations} in 2018 (persisted across instances) fixed:
- *     iteration state is per-planning-session, held in local vars.
+ * Per-planning-session state (iteration counters, thrash guard) is held in local vars,
+ * so an instance is safe to reuse across calls.
  */
 public final class Balancer {
 

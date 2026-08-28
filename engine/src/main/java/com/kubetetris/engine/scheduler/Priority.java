@@ -9,12 +9,10 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Port of {@code CapacityPlacementServiceHelper.computePlacementPriority} using the
- * 2018 Cantor pairing function. Semantic diff vs 2018: gaps are clamped at 0 before
- * pairing (surplus in one dimension is not counted as a deficit). Without this fix
- * a node with a huge mem surplus but small cpu deficit ranked WORSE than a node with
- * a small mem deficit and no cpu deficit, which caused the ui-mockup fixture to try
- * the wrong candidate node first.
+ * Orders nodes by how close they are to fitting the placement request. Uses the
+ * Cantor pairing function over the two-dimensional (mem_gap, cpu_gap) with negative
+ * gaps (surplus) clamped at zero — a mem surplus should not count as a mem deficit.
+ * Nodes with the smallest paired gap are tried first.
  */
 public final class Priority {
 

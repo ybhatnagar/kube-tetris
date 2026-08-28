@@ -18,23 +18,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Pure entry point over a {@link SnapshotView}. Ported from the 2018
- * {@code CapacityPlacementServiceImpl}. Both the single-pod recursion and the
+ * Pure entry point over a {@link SnapshotView}. Both the single-pod recursion and the
  * multi-pod DP recursion are computed; the plan with fewer moves wins (ties → fewer
- * non-reversible touches, then smaller total request magnitude — per doc 05 §5).
- *
- * Bug fixes vs 2018:
- *   - {@code computeMinimumMigrateablePod} in the 2018 helper compared pod2 to itself
- *     (copy-paste bug); the ported {@link #pickMinimumMigratable} compares correctly.
- *   - Multi-pod DP {@code computeMinimumMigrateablePods} mem-branch checked cpu totals;
- *     ported code checks the correct dimension.
- *   - {@code computeEligiblePods}' "strict less than placement" filter was over-tight
- *     and dropped legitimate single-hop moves. Removed here — an eligible pod is any
- *     movable pod that covers the deficit dimensions once evicted.
- *   - {@code computePlacementPriority} took Math.abs(gap) so a mem-surplus scored as a
- *     mem-deficit. See {@link Priority#nodeOrderByDeficit}.
- *   - Cycle detection: track (podUid, sourceNodeName) visited so a displaced pod can't
- *     bounce back through the same source; hard iteration cap from config.
+ * non-reversible touches, then smaller total request magnitude). The executor path is
+ * out of scope: this class only computes plans.
  */
 public final class Scheduler {
 
@@ -51,7 +38,7 @@ public final class Scheduler {
     public FeasibilityResult plan(SnapshotView snapshot, PodSpec pending, boolean optInNonReversible) {
         if (pending.request().isZero() && config.safety().requireRequests()) {
             return FeasibilityResult.infeasible(pending.uid(),
-                    "Pending pod has no resource requests; footprint is unknown (doc 05 F11).");
+                    "Pending pod has no resource requests; footprint is unknown.");
         }
         long totalFreeCpu = 0L, totalFreeMem = 0L;
         for (NodeState n : snapshot.nodes()) {
@@ -64,11 +51,9 @@ public final class Scheduler {
                     "Σ free capacity < request; add a node (no migration can help).");
         }
 
-        // Exhaustively explore each top-level candidate node and keep the minimum-moves plan.
-        // Doc 05 §5: "tie → fewer non-reversible touches, then smaller total disruption."
-        // The 2018 code returned on first success, which sometimes produced a 2-move plan
-        // when a 1-move plan existed via a lower-priority candidate node. Inner recursion
-        // (for displaced pods) remains greedy — first success wins there.
+        // Exhaustively explore each top-level candidate node and keep the minimum-moves plan
+        // (ties broken by fewer non-reversible touches, then smaller total disruption).
+        // Inner recursion (for displaced pods) remains greedy — first success wins there.
         Attempt bestSingle = exploreTopLevel(snapshot, pending, optInNonReversible, false);
         Attempt bestMulti = exploreTopLevel(snapshot, pending, optInNonReversible, true);
 
@@ -133,8 +118,9 @@ public final class Scheduler {
 
     /**
      * The raw plan built during recursion emits (MOVE-off from N, PLACE-land on M) as two
-     * steps per human "move". Doc 04's PlanStepDTO models a MOVE as atomic (from + to).
-     * Finalize pairs them and sequences deepest-chain moves first (execution order).
+     * steps per human "move". The public plan uses atomic {@code MOVE(from, to)} steps.
+     * Finalize pairs the raw ops and sequences deepest-chain moves first, which is the
+     * order the executor must apply them in to preserve capacity invariants.
      */
     static List<PlanStep> finalizePlan(List<PlanStep> raw) {
         Map<String, String> evictedFrom = new HashMap<>();
@@ -469,9 +455,8 @@ public final class Scheduler {
 
         /**
          * From an eligible list (each individually covers the deficit), pick the pod
-         * whose eviction disturbs the cluster least. 2018 helper compared pod2 to
-         * itself — this restores the intended (pod1, pod2) comparison, using
-         * (cpu+mem) as the disruption proxy.
+         * whose eviction disturbs the cluster least, using (cpu + mem) sum as the
+         * disruption proxy and uid as a deterministic tiebreak.
          */
         static PodSpec pickMinimumMigratable(List<PodSpec> eligible) {
             if (eligible.isEmpty()) return null;

@@ -21,8 +21,9 @@ public record ResourceReq(long cpuMillicore, long memoryMB) {
     }
 
     /**
-     * CPU/mem ratio with the 2018 SystemControllerImpl clamps preserved verbatim:
-     * mem==0 → 1_000_000 (very-high CPU-per-mem), cpu==0 → 0. Entropy math depends on these.
+     * CPU-to-memory ratio used by the balancer's entropy math. Clamped so degenerate
+     * ratios stay finite: {@code mem==0 → 1_000_000} (very-high CPU-per-mem);
+     * {@code cpu==0 → 0}.
      */
     public double cpuMemRatio() {
         if (memoryMB == 0) return 1_000_000d;

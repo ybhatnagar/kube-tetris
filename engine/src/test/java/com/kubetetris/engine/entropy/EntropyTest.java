@@ -27,13 +27,11 @@ class EntropyTest {
     }
 
     @Test
-    void pivotAndEntropyMatchDeckExampleForUiMockupFixture() {
+    void pivotAndEntropyMatchTheSyntheticFixture() {
         var snap = SnapshotFactory.uiMockupFixture();
         double pivot = Entropy.pivot(snap.nodes());
         double entropy = Entropy.systemEntropy(snap.nodes(), pivot);
-        // pivot = 1200/2200 = 0.5454...
-        assertEquals(0.5454d, pivot, 0.001d);
-        // deck example: ~2.81
+        assertEquals(0.5454d, pivot, 0.001d);   // 1200/2200
         assertEquals(2.8045d, entropy, 0.001d);
     }
 
