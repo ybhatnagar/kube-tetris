@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Mutable per-plan scratchpad. The engine's public entry points build a WorkingCluster
- * from a SnapshotView on entry and mutate only the scratchpad. This is the "pure at the
- * boundary" boundary the 2018 code lacked (it aliased Pod.parentNode across clones).
+ * Mutable per-plan scratchpad. The engine's public entry points build a {@code
+ * WorkingCluster} from a {@link SnapshotView} on entry and mutate only the scratchpad,
+ * so the snapshot itself stays immutable across a planning session.
  */
 public final class WorkingCluster {
 

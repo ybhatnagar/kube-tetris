@@ -9,18 +9,16 @@ import com.kubetetris.engine.domain.SnapshotView;
 import java.util.List;
 
 /**
- * Deterministic synthetic snapshots for M1 tests. Mirrors the {@code freshCluster()}
- * data in {@code design-docs/ui-mockup.html} exactly (three 1000mC/2000MB nodes with
- * six named pods; two pending pods including a Job that's infeasible-by-total).
+ * Deterministic synthetic snapshots — three 1000mC/2000MB nodes with six named
+ * workloads plus two pending pods. Exercises both worked examples:
  *
- * This one fixture exercises both worked examples:
- *   - Scheduler:  pending {@code checkout} (300/600) has no direct fit; the single-pod
- *     path must produce one MOVE + one PLACE. Also demonstrates infeasible-by-total for
- *     pending {@code batch-report} (900/1800), and the reversibility exclusion via
- *     {@code ledger} (StatefulSet). See M1-NOTES for why doc 06's fig1_fragmentation
- *     spec wasn't used directly (no pod inventory listed).
- *   - Balancer:   pivot ≈ 0.5455, base entropy ≈ 2.8045, best swap
- *     {@code ranker⇄thumbnailer} → entropy ≈ 0.2860 (the doc's "~2.81 → 0.29").
+ * <ul>
+ *   <li>Scheduler: pending {@code checkout} (300 mC / 600 MB) has no direct fit; the
+ *       single-pod path produces one MOVE + one PLACE. A StatefulSet ({@code ledger})
+ *       is present so reversibility exclusion is testable.</li>
+ *   <li>Balancer: pivot ≈ 0.5455, base entropy ≈ 2.8045, best swap
+ *       {@code ranker⇄thumbnailer} drops entropy to ≈ 0.2860.</li>
+ * </ul>
  */
 public final class SnapshotFactory {
 

@@ -5,15 +5,16 @@ import com.kubetetris.engine.domain.NodeState;
 import java.util.List;
 
 /**
- * The 2018 SystemControllerImpl math, made explicit and I/O-free.
+ * System-balance math.
  *
- * pivot = Σ free_cpu / Σ free_mem
+ * <pre>
+ * pivot     = Σ free_cpu / Σ free_mem
  * nodeRatio = node.free_cpu / node.free_mem   (with ResourceReq clamps)
- * entropy = Σ |pivot − nodeRatio|             (lower is better; 0 = balanced)
+ * entropy   = Σ |pivot − nodeRatio|           (lower is better; 0 = balanced)
+ * </pre>
  *
- * Diff vs 2018: pivot is computed once and passed to {@link #systemEntropy(List, double)}
- * rather than recomputed inside the sum loop. Same numeric result; documents that pivot
- * is invariant across pure pod swaps between two nodes.
+ * Pivot is computed once and passed to {@link #systemEntropy(List, double)}: it is
+ * invariant across pure pod swaps between two nodes, so callers can hoist the call.
  */
 public final class Entropy {
 

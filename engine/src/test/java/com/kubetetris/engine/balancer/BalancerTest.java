@@ -15,20 +15,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BalancerTest {
 
     @Test
-    void reproducesDeckExampleEntropyDropExactly() {
+    void topSwapIsTheHighestEntropyDropOnTheFixture() {
         var snap = SnapshotFactory.uiMockupFixture();
         Balancer bal = new Balancer(EngineConfig.defaults());
         BalancePlanResult result = bal.plan(snap);
 
-        assertEquals(2.8045d, result.baseEntropy(), 0.005d, "base entropy ~ 2.81");
+        assertEquals(2.8045d, result.baseEntropy(), 0.005d);
         assertFalse(result.swaps().isEmpty(), "at least one improving swap must be found");
 
         SwapStep first = result.swaps().get(0);
         assertEquals(0.286d, first.entropyAfter(), 0.005d,
-                "top swap drops entropy to ~0.29 (deck example)");
-
-        // The top swap must be ranker⇄thumbnailer (as tie-broken by iteration order —
-        // matches the mockup's `bestSwap`).
+                "top swap should drop entropy to ~0.29");
         Set<String> names = Set.of(first.podA().name(), first.podB().name());
         assertEquals(Set.of("ranker", "thumbnailer"), names,
                 "expected top swap ranker⇄thumbnailer; got " + names);

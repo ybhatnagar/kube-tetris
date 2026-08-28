@@ -1,9 +1,11 @@
 package com.kubetetris.engine.domain;
 
 /**
- * One step in a scheduler plan. Mirrors PlanStepDTO in doc 04.
- * MOVE: evict {@code pod} from {@code fromNode}, place on {@code toNode}.
- * PLACE: place a currently-pending {@code pod} on {@code toNode} (no source).
+ * One step in a scheduler plan.
+ * <ul>
+ *   <li>{@code MOVE} — evict {@code pod} from {@code fromNode}, place it on {@code toNode}.</li>
+ *   <li>{@code PLACE} — place a currently-pending {@code pod} on {@code toNode} (no source).</li>
+ * </ul>
  */
 public record PlanStep(Kind kind, PodSpec pod, String fromNode, String toNode, String note) {
 

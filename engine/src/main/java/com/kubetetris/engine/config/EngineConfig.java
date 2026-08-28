@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * All tunables live here. Nothing in the algorithms is hard-coded. Shape mirrors
- * design-docs/06 §4. Defaults chosen for the M1 synthetic fixtures; production
- * defaults will be re-tuned at M6.
+ * All tunables live here. Nothing in the algorithms is hard-coded. The current
+ * defaults are chosen for synthetic fixtures and will be re-tuned once real cluster
+ * data is available.
  */
 public record EngineConfig(Scheduler scheduler, Balancer balancer, Safety safety) {
 

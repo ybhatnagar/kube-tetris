@@ -2,7 +2,7 @@ package com.kubetetris.engine.domain;
 
 import java.util.List;
 
-/** Engine-side mirror of FeasibilityDTO (doc 04) minus the transport/JSON layer. */
+/** Engine-side feasibility verdict for a single pending pod. */
 public record FeasibilityResult(
         String pendingPodUid,
         boolean feasible,
