@@ -19,9 +19,10 @@ time, and the tool re-snapshots between actions.
 ```
 engine/    pure JVM engine over a cluster snapshot (algorithms + tests)
 api/       REST wrapper (Spring Boot) exposing /api/v1 over the engine
+ui/        single-file HTML/CSS/JS app served by api/ at the root URL
 ```
 
-Additional modules (collector, executor, UI, deploy chart) will land in future work.
+Additional modules (collector, executor, deploy chart) will land in future work.
 
 ## Build
 
@@ -34,14 +35,15 @@ JDK ≥ 21 (tested on JDK 25 and 26); the wrapper is pinned to Gradle 9.7.1.
 ./gradlew :api:test            # api only
 ```
 
-## Run the API locally
+## Run locally
 
 ```bash
 ./gradlew :api:bootRun
 ```
 
 By default the server binds to `:8080` and seeds an in-memory `synth` cluster so the
-endpoints work without a real Kubernetes connection.
+endpoints work without a real Kubernetes connection. Open the UI at
+[http://localhost:8080/](http://localhost:8080/), or hit the API directly:
 
 ```bash
 curl -s http://localhost:8080/healthz
@@ -50,6 +52,9 @@ curl -s http://localhost:8080/api/v1/clusters/synth/pending
 curl -s -X POST -H 'Content-Type: application/json' -d '{}' \
      http://localhost:8080/api/v1/clusters/synth/balance/plan
 ```
+
+This build is a **read-only advisor**: the UI's APPLY buttons are disabled and the
+API has no write endpoints.
 
 ## Lineage
 
