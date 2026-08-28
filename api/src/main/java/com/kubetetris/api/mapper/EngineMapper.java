@@ -37,17 +37,15 @@ public final class EngineMapper {
         double pivot = Entropy.pivot(view.nodes());
         double entropy = Entropy.systemEntropy(view.nodes(), pivot);
         List<NodeDto> nodes = new ArrayList<>(view.nodes().size());
-        List<PodDto> allPods = new ArrayList<>();
-        for (NodeState n : view.nodes()) {
-            nodes.add(toNodeDto(n));
-            for (PodSpec p : n.pods()) allPods.add(toPodDto(p, n.name()));
-        }
+        for (NodeState n : view.nodes()) nodes.add(toNodeDto(n));
         List<PodDto> pending = new ArrayList<>(view.pending().size());
         for (PodSpec p : view.pending()) pending.add(toPodDto(p, null));
         return new SnapshotDto(clusterId, takenAt, stale, pivot, entropy, nodes, pending);
     }
 
     public static NodeDto toNodeDto(NodeState node) {
+        List<PodDto> pods = new ArrayList<>(node.pods().size());
+        for (PodSpec p : node.pods()) pods.add(toPodDto(p, node.name()));
         return new NodeDto(
                 node.name(),
                 null,
@@ -59,7 +57,8 @@ public final class EngineMapper {
                 node.cpuMemRatio(),
                 false,
                 true,
-                List.of()
+                List.of(),
+                pods
         );
     }
 
