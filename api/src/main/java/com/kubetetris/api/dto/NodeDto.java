@@ -13,5 +13,6 @@ public record NodeDto(
         double ratio,
         boolean cordoned,
         boolean ready,
-        List<String> taints
+        List<String> taints,
+        List<PodDto> pods
 ) {}

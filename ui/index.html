@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Kube Tetris</title>
+<style>
+  :root{
+    --bg:#f5f7f9; --surface:#ffffff; --surface2:#fafbfc; --border:#e4e7eb; --border2:#d3d8de;
+    --text:#1b2430; --muted:#657084; --faint:#8a93a3;
+    --accent:#2563eb; --accent-bg:#eaf1fe; --accent-br:#c5d9fb;
+    --green:#127a4a; --green-bg:#e7f6ee; --green-br:#bfe6d0;
+    --amber:#8a5a06; --amber-bg:#fbf1dd; --amber-br:#ecd8a8;
+    --red:#b02a2a; --red-bg:#fbeeee; --red-br:#e6c3c3;
+    --purple:#5b46c4; --purple-bg:#eeeafb; --topbar:#0f2436; --radius:8px;
+    --cpu:#2f6fbf; --cpu-bg:#e7f0fb; --mem:#8f70c8; --mem-bg:#eee7fb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .topbar{background:var(--topbar);color:#fff;height:52px;display:flex;align-items:center;padding:0 20px;gap:10px}
+  .topbar .logo{width:26px;height:26px;border-radius:6px;background:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px}
+  .topbar h1{font-size:15px;font-weight:500;margin:0}
+  .topbar .env{margin-left:auto;font-size:12px;color:#ffd9a8;display:flex;align-items:center;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#f0a952;display:inline-block}
+  main{max-width:1180px;margin:0 auto;padding:24px 24px 70px}
+  .screen{display:none} .screen.show{display:block}
+  h2{font-size:20px;font-weight:600;margin:0 0 4px}
+  h3.sec{font-size:15.5px;font-weight:600;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:13.5px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+  label.f{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px}
+  input[type=text],input[type=url],input[type=number],select{width:100%;height:36px;border:1px solid var(--border2);border-radius:var(--radius);padding:0 11px;font-size:13.5px;background:var(--surface);color:var(--text)}
+  .btn{height:36px;padding:0 16px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{background:var(--surface2)} .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#1d55cf}
+  .btn.ghost{border-color:transparent;color:var(--accent);padding:0 8px}
+  .btn.sm{height:30px;font-size:12.5px;padding:0 12px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:20px;font-weight:500}
+  .pill.blue{background:var(--accent-bg);color:var(--accent)} .pill.green{background:var(--green-bg);color:var(--green)}
+  .pill.amber{background:var(--amber-bg);color:var(--amber)} .pill.gray{background:#eef1f4;color:var(--muted)}
+  .pill.red{background:var(--red-bg);color:var(--red)} .pill.purple{background:var(--purple-bg);color:var(--purple)}
+  .muted{color:var(--muted)} .small{font-size:12.5px}
+  .row{display:flex;align-items:center;gap:10px}
+  .between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .hint{background:#f0f5fb;border:1px solid #dbe6f4;border-radius:var(--radius);padding:9px 12px;font-size:12.5px;color:#3a5675;display:flex;gap:8px;align-items:flex-start}
+  .warn{background:var(--amber-bg);border:1px solid var(--amber-br);color:var(--amber);border-radius:var(--radius);padding:9px 12px;font-size:12.5px;display:flex;gap:8px;align-items:flex-start}
+  .clgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+  .clcard{border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:14px;background:var(--surface)}
+  .clcard:hover{border-color:var(--accent-br);background:var(--surface2)}
+  .clcard .k8s{width:44px;height:44px;border-radius:10px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .clcard .k8s svg{width:28px;height:28px}
+  .clcard .cn{font-weight:600;font-size:14px;word-break:break-all}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin:8px 0 18px;flex-wrap:wrap}
+  .tab{padding:9px 16px;font-size:13.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:8px}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .tabpane{display:none} .tabpane.show{display:block}
+  .nodegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:14px;margin:14px 0}
+  .node{border:1px solid var(--border);border-radius:11px;background:var(--surface);padding:13px 14px}
+  .node.hot{border-color:var(--red-br);box-shadow:0 0 0 3px var(--red-bg)}
+  .node .nname{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
+  .meter{margin:9px 0 3px}
+  .meter .ml{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px}
+  .bar{height:9px;border-radius:5px;background:#eef1f4;overflow:hidden;position:relative}
+  .bar>i{display:block;height:100%;transition:width .6s cubic-bezier(.4,0,.2,1)}
+  .bar.cpu>i{background:var(--cpu)} .bar.mem>i{background:var(--mem)}
+  .podchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;min-height:24px}
+  .podchip{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);display:inline-flex;gap:6px;align-items:center}
+  .podchip.cpuheavy{border-color:var(--cpu);background:var(--cpu-bg);color:#1c4c8a}
+  .podchip.memheavy{border-color:var(--mem);background:var(--mem-bg);color:#4a3596}
+  .podchip .lock{font-size:10px}
+  .reco{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:11px;flex-wrap:wrap}
+  .reco.infeasible{opacity:.72}
+  .reco .wl{min-width:180px}
+  .reco .wl b{font-size:14px}
+  .seg2{display:flex;flex-direction:column;gap:1px;min-width:92px}
+  .seg2 .lb{font-size:11px;color:var(--muted)}
+  .down{color:var(--green);font-weight:600} .up{color:var(--red);font-weight:600}
+  .fromto{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .nodechip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border2);background:var(--surface2);white-space:nowrap}
+  .ar{color:var(--faint)}
+  .acts{display:flex;gap:8px;margin-left:auto}
+  .plan{margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;font-size:12.5px;display:none;flex-basis:100%}
+  .reco.open .plan{display:block}
+  .planstep{display:flex;align-items:center;gap:9px;padding:4px 0}
+  .stepnum{width:19px;height:19px;border-radius:50%;background:#eef1f4;color:var(--muted);font-size:10.5px;display:flex;align-items:center;justify-content:center;font-weight:600;flex:0 0 auto}
+  .kw{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;font-weight:700}
+  .kw.move{color:var(--amber)} .kw.place{color:var(--green)} .kw.swap{color:var(--purple)}
+  .entwrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .entbar{flex:1;min-width:220px;height:16px;border-radius:9px;background:linear-gradient(90deg,var(--green-bg),var(--amber-bg),var(--red-bg));position:relative;border:1px solid var(--border)}
+  .entbar>.fill{position:absolute;left:0;top:0;bottom:0;border-radius:9px;background:rgba(176,42,42,.20);border-right:2px solid var(--red);transition:width .7s cubic-bezier(.4,0,.2,1)}
+  .statbig{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+  .pivotwrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:6px 8px 2px;margin:6px 0 14px}
+  #pivotline{width:100%;height:96px;display:block}
+  .controls{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:13px 15px;margin-bottom:16px}
+  .controls .cg{display:flex;flex-direction:column;gap:5px}
+  .controls .cg label{font-size:11.5px;color:var(--muted)}
+  .slider{display:flex;align-items:center;gap:9px}
+  .slider input[type=range]{width:130px}
+  .switch{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;user-select:none}
+  .switch input{width:34px;height:20px;appearance:none;background:#cfd6de;border-radius:20px;position:relative;cursor:pointer;transition:background .2s;flex:0 0 auto}
+  .switch input:checked{background:var(--green)}
+  .switch input::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s}
+  .switch input:checked::after{left:16px}
+  .overlay{position:fixed;inset:0;background:rgba(15,28,45,.5);display:none;align-items:center;justify-content:center;padding:24px;z-index:50}
+  .overlay.show{display:flex}
+  .modal{background:var(--surface);border-radius:14px;width:100%;max-width:600px;max-height:90vh;overflow:auto;padding:22px 24px}
+  .modal h3{margin:0;font-size:17px;font-weight:600}
+  .modal .x{margin-left:auto;border:none;background:none;font-size:20px;color:var(--faint);cursor:pointer;line-height:1}
+  .evidence{background:#f0f5fb;border:1px solid #dbe6f4;border-radius:var(--radius);padding:11px 13px;font-size:13px;color:#33475f;margin:12px 0;white-space:pre-wrap}
+  #toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#0f2436;color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .15s;z-index:60}
+  #toast.show{opacity:1}
+  .stale{background:var(--amber-bg);border:1px solid var(--amber-br);color:var(--amber);border-radius:10px;padding:11px 14px;margin:12px 0;display:none;align-items:center;gap:10px;font-size:13px}
+  .stale.show{display:flex}
+  .advisor-badge{background:var(--accent-bg);border:1px solid var(--accent-br);color:var(--accent);border-radius:10px;padding:11px 14px;margin:12px 0;display:flex;align-items:center;gap:10px;font-size:13px}
+  footer.note{color:var(--faint);font-size:12px;text-align:center;padding:16px}
+  .legendrow{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:2px 0 4px}
+  .lgd{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">KT</div>
+  <h1>Kube Tetris</h1>
+  <div class="env"><span class="dot"></span> <span>advisor mode · no writes to any cluster</span></div>
+</div>
+
+<main>
+  <section class="screen show" id="s1">
+    <div class="between" style="margin-bottom:4px">
+      <h2 style="margin:0">Connect a Kubernetes cluster</h2>
+      <button class="btn primary sm" onclick="openM('m-cluster')">+ Add cluster</button>
+    </div>
+    <p class="sub">Pick a connected cluster to open its workspace. This build is a read-only advisor:
+      it computes migration plans but doesn't apply them.</p>
+    <div class="clgrid" id="clusters"></div>
+  </section>
+
+  <section class="screen" id="s2">
+    <div class="between">
+      <div>
+        <h2 style="margin:0">Workspace — <span id="wsCluster">—</span></h2>
+        <p class="sub" style="margin:2px 0 0">Live view of the cluster snapshot. In this build, APPLY buttons are advisory only.</p>
+      </div>
+      <div class="row">
+        <span class="pill blue" id="snapPill">snapshot —</span>
+        <button class="btn sm" onclick="reSnapshot()">↻ Refresh</button>
+        <button class="btn sm" onclick="showScreen(1)">Switch cluster</button>
+      </div>
+    </div>
+
+    <div class="advisor-badge"><span>ⓘ</span><span>This build is an <b>advisor</b>. APPLY actions are disabled while the executor is still under construction.</span></div>
+
+    <div class="tabs">
+      <div class="tab active" data-t="sched" onclick="setTab('sched')">🧩 Scheduler <span class="pill gray small" id="schedCount">—</span></div>
+      <div class="tab" data-t="bal" onclick="setTab('bal')">⚖️ Balancer <span class="pill amber small" id="balImprove">—</span></div>
+    </div>
+
+    <div class="stale" id="staleBanner">
+      <span>↻</span><span><b>Snapshot is stale.</b> Re-collect to work against the latest cluster state.</span>
+    </div>
+
+    <div class="tabpane show" id="pane-sched">
+      <h3 class="sec">Pending pods that can't be scheduled</h3>
+      <p class="sub">Each pending pod is auto-checked: can we free a node for it with a minimal set of migrations?</p>
+      <div id="pendingList"></div>
+      <h3 class="sec" style="margin-top:22px">Nodes <span class="small muted">— free capacity</span></h3>
+      <div class="nodegrid" id="schedNodes"></div>
+    </div>
+
+    <div class="tabpane" id="pane-bal">
+      <div class="card" style="margin-bottom:14px">
+        <div class="between" style="margin-bottom:12px">
+          <h3 class="sec" style="margin:0">System balance (entropy)</h3>
+          <span class="small muted">entropy = Σ |pivot − node&nbsp;CPU/mem&nbsp;ratio| · lower = more balanced</span>
+        </div>
+        <div class="entwrap">
+          <div style="text-align:center"><div class="statbig" id="entNow">—</div><div class="small muted">current</div></div>
+          <div class="entbar"><div class="fill" id="entFill" style="width:70%"></div></div>
+          <div style="text-align:center"><div class="statbig down" id="entProj">—</div><div class="small muted">after full plan</div></div>
+          <div style="text-align:center"><div class="statbig down" id="entPct">—</div><div class="small muted">improvement</div></div>
+        </div>
+      </div>
+
+      <h3 class="sec">Balance number-line <span class="small muted">— each node placed by its free CPU/mem ratio</span></h3>
+      <div class="pivotwrap"><svg id="pivotline" viewBox="0 0 1080 96" preserveAspectRatio="xMidYMid meet"></svg></div>
+
+      <div class="controls">
+        <div class="cg">
+          <label>Min improvement to show a swap</label>
+          <div class="slider"><input type="range" id="minImp" min="0" max="20" value="3" oninput="onControls()"><span class="small" id="minImpV" style="width:34px">3%</span></div>
+        </div>
+        <div class="cg">
+          <label>Namespace</label>
+          <select id="nsFilter" onchange="onControls()"><option value="">all namespaces</option></select>
+        </div>
+        <div class="cg">
+          <label>Max swaps this pass</label>
+          <input type="number" id="maxSwaps" value="5" min="1" style="width:90px" onchange="onControls()">
+        </div>
+        <div class="cg">
+          <label>Non-reversible workloads</label>
+          <label class="switch"><input type="checkbox" id="exclNonrev" checked onchange="onControls()"> exclude (StatefulSet / PVC / singleton)</label>
+        </div>
+      </div>
+
+      <h3 class="sec">Nodes</h3>
+      <div class="legendrow">
+        <span class="lgd"><span class="sw" style="background:var(--cpu)"></span> CPU</span>
+        <span class="lgd"><span class="sw" style="background:var(--mem)"></span> Memory</span>
+        <span class="lgd"><span class="sw" style="background:var(--cpu-bg);border:1px solid var(--cpu)"></span> CPU-heavy pod</span>
+        <span class="lgd"><span class="sw" style="background:var(--mem-bg);border:1px solid var(--mem)"></span> Mem-heavy pod</span>
+        <span class="lgd">🔒 non-reversible (excluded)</span>
+      </div>
+      <div class="nodegrid" id="balNodes"></div>
+
+      <h3 class="sec" style="margin-top:8px">Recommended swaps <span class="small muted">— best-first, capped by "Max swaps"</span></h3>
+      <div id="swapList"></div>
+    </div>
+
+    <div class="row" style="margin-top:14px"><button class="btn" onclick="showScreen(1)">← Back to clusters</button></div>
+  </section>
+</main>
+
+<div class="overlay" id="m-cluster"><div class="modal">
+  <div class="row" style="margin-bottom:16px"><h3>Add cluster</h3><button class="x" onclick="closeM('m-cluster')">×</button></div>
+  <label class="f">Cluster name</label><input id="cl-name" type="text" placeholder="prod-eu-1" style="margin-bottom:14px">
+  <label class="f">API URL</label><input id="cl-api" type="text" placeholder="https://10.0.0.1:6443" style="margin-bottom:14px">
+  <label class="f">Auth method</label>
+  <select id="cl-auth" style="margin-bottom:14px"><option>kubeconfig</option><option>token</option><option>client_cert</option></select>
+  <label class="f">Credential reference (k8s Secret name)</label><input id="cl-ref" type="text" placeholder="kubeconfig-prod">
+  <div class="hint" style="margin-top:14px"><span>ⓘ</span><span>Stored as a Secret reference only. The synthetic cluster is always available for demos.</span></div>
+  <div class="row" style="gap:10px;margin-top:20px">
+    <button class="btn primary" style="margin-left:auto" onclick="addCluster()">Save</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="m-why"><div class="modal">
+  <div class="row" style="align-items:flex-start"><h3 id="whyTitle">Why this recommendation</h3><button class="x" onclick="closeM('m-why')">×</button></div>
+  <div class="evidence" id="whyBody"></div>
+  <div class="row" style="margin-top:18px"><button class="btn" onclick="closeM('m-why')">Close</button></div>
+</div></div>
+
+<div id="toast"></div>
+<footer class="note">Kube Tetris · reads via /api/v1 · advisor build (no cluster writes)</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const K8S = '<svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.6"><path d="M12 2l8.5 4v8L12 22 3.5 14V6z"/><circle cx="12" cy="12" r="3"/></svg>';
+const shortN = (name) => name ? name.replace('ip-10-0-1-', 'n') : '';
+const API = '/api/v1';
+
+const state = {
+  clusters: [],
+  clusterId: null,
+  snapshot: null,
+  pending: [],
+  balance: null,
+  controls: { minImp: 3, ns: '', maxSwaps: 5, exclNonRev: true },
+};
+
+function toast(m) {
+  const t = $('toast');
+  t.textContent = m;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 2600);
+}
+function openM(id) { $(id).classList.add('show'); }
+function closeM(id) { $(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); }));
+
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('show'));
+  $('s' + n).classList.add('show');
+  window.scrollTo(0, 0);
+}
+function setTab(t) {
+  document.querySelectorAll('.tab[data-t]').forEach(x => x.classList.toggle('active', x.dataset.t === t));
+  $('pane-sched').classList.toggle('show', t === 'sched');
+  $('pane-bal').classList.toggle('show', t === 'bal');
+  if (t === 'bal') refreshBalance();
+}
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Accept': 'application/json' } };
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(API + path, opts);
+  if (!res.ok) throw new Error(method + ' ' + path + ' → ' + res.status);
+  if (res.status === 204) return null;
+  return await res.json();
+}
+
+async function loadClusters() {
+  try {
+    const r = await api('GET', '/clusters');
+    state.clusters = r.clusters || [];
+    renderClusters();
+  } catch (e) { toast('Could not load clusters: ' + e.message); }
+}
+
+function renderClusters() {
+  const g = $('clusters'); g.innerHTML = '';
+  if (!state.clusters.length) {
+    g.innerHTML = '<div class="card small muted">No clusters registered.</div>';
+    return;
+  }
+  state.clusters.forEach(c => {
+    const authLine = c.api_url ? (c.api_url + ' · ' + (c.auth_method || 'synthetic')) : (c.auth_method || 'synthetic');
+    const d = document.createElement('div');
+    d.className = 'clcard';
+    d.innerHTML = '<div class="k8s">' + K8S + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="cn">' + c.name + '</div>' +
+        '<div class="small muted">' + authLine + '</div>' +
+        '<div style="margin-top:8px"><span class="pill green">' + (c.status || 'ready') + '</span></div>' +
+        '<div style="margin-top:10px">' +
+          '<button class="btn sm primary" data-id="' + c.id + '">Open workspace →</button>' +
+        '</div>' +
+      '</div>';
+    d.querySelector('button').addEventListener('click', () => openWorkspace(c.id, c.name));
+    g.appendChild(d);
+  });
+}
+
+async function addCluster() {
+  const name = $('cl-name').value.trim();
+  if (!name) { toast('Name required'); return; }
+  try {
+    await api('POST', '/clusters', {
+      name,
+      api_url: $('cl-api').value.trim() || null,
+      auth_method: $('cl-auth').value,
+      credential_ref: $('cl-ref').value.trim() || null,
+    });
+    closeM('m-cluster');
+    ['cl-name', 'cl-api', 'cl-ref'].forEach(id => $(id).value = '');
+    await loadClusters();
+    toast('Cluster "' + name + '" added');
+  } catch (e) { toast('Add failed: ' + e.message); }
+}
+
+async function openWorkspace(id, name) {
+  state.clusterId = id;
+  $('wsCluster').textContent = name || id;
+  showScreen(2);
+  setTab('sched');
+  await refreshAll(true);
+}
+
+async function reSnapshot() {
+  await refreshAll(true);
+  toast('Re-snapshotted');
+}
+
+async function refreshAll(collect) {
+  try {
+    if (collect) {
+      try { await api('POST', '/clusters/' + state.clusterId + '/collect'); }
+      catch (e) { /* non-synthetic clusters return 501 in this build; snapshot GET may still work */ }
+    }
+    const snap = await api('GET', '/clusters/' + state.clusterId + '/snapshot');
+    state.snapshot = snap;
+    populateNamespaceFilter(snap);
+    renderSnapshotHeader(snap);
+    renderSchedNodes(snap);
+    renderBalNodes(snap);
+    drawPivotLine(snap);
+    await refreshPending();
+    await refreshBalance();
+  } catch (e) { toast('Load failed: ' + e.message); }
+}
+
+function renderSnapshotHeader(snap) {
+  const when = snap.taken_at ? new Date(snap.taken_at) : null;
+  const ago = when ? Math.round((Date.now() - when.getTime()) / 1000) : null;
+  $('snapPill').textContent = ago != null ? ('snapshot ' + ago + 's ago') : 'snapshot —';
+  $('staleBanner').classList.toggle('show', !!snap.stale);
+}
+
+function populateNamespaceFilter(snap) {
+  const sel = $('nsFilter');
+  const nsSet = new Set();
+  (snap.nodes || []).forEach(n => (n.pods || []).forEach(p => p.namespace && nsSet.add(p.namespace)));
+  (snap.pending || []).forEach(p => p.namespace && nsSet.add(p.namespace));
+  const current = sel.value;
+  sel.innerHTML = '<option value="">all namespaces</option>' +
+    [...nsSet].sort().map(n => '<option value="' + n + '">' + n + '</option>').join('');
+  sel.value = current;
+}
+
+async function refreshPending() {
+  try {
+    const r = await api('GET', '/clusters/' + state.clusterId + '/pending');
+    state.pending = r.pending || [];
+    renderPending();
+  } catch (e) { toast('Pending fetch failed: ' + e.message); }
+}
+
+function renderPending() {
+  const box = $('pendingList'); box.innerHTML = '';
+  $('schedCount').textContent = state.pending.length + ' pending';
+  if (!state.pending.length) {
+    box.innerHTML = '<div class="card small muted">No pending pods — the scheduler has nothing to fix. 🎉</div>';
+    return;
+  }
+  state.pending.forEach(f => {
+    const el = document.createElement('div');
+    el.className = 'reco' + (f.feasible ? '' : ' infeasible');
+    el.id = 'pending-' + f.pending_pod_uid;
+
+    const verdict = f.feasible
+      ? '<span class="pill green">schedulable · ' + f.moves + ' migration' + (f.moves === 1 ? '' : 's') + '</span>'
+      : '<span class="pill red">infeasible</span>';
+    const nonrev = f.touches_nonreversible ? '<span class="pill amber" title="plan touches a non-reversible workload">⚠ StatefulSet</span>' : '';
+    const pdb = f.feasible ? (f.pdb_status === 'blocked' ? '<span class="pill amber">PDB: blocked</span>' : '<span class="pill green">PDB: allowed</span>') : '';
+
+    const req = findPendingSpec(f.pending_pod_uid);
+    const reqLine = req ? (req.cpu_req + 'mC · ' + req.mem_req + 'MB') : '—';
+    const kindLine = req ? (req.kind + ' · ' + req.namespace) : '';
+
+    let stepsHtml = '';
+    (f.plan || []).forEach((s, i) => {
+      const kw = s.action.toLowerCase();
+      stepsHtml += '<div class="planstep"><span class="stepnum">' + (i + 1) + '</span>' +
+        '<span class="kw ' + kw + '">' + s.action + '</span> <b>' + s.pod_name + '</b>' +
+        (s.from_node ? ' <span class="ar">from</span> <span class="nodechip">' + shortN(s.from_node) + '</span>' : '') +
+        ' <span class="ar">→</span> <span class="nodechip">' + shortN(s.to_node) + '</span>' +
+        (s.note ? ' <span class="small muted">' + s.note + '</span>' : '') +
+        '</div>';
+    });
+
+    const applyTitle = 'APPLY is disabled in the advisor build';
+    el.innerHTML =
+      '<div class="wl"><b>' + (f.pending_pod_name || req?.name || f.pending_pod_uid) + '</b>' +
+      '<div class="small muted">' + kindLine + '</div></div>' +
+      '<div class="seg2"><span class="lb">Requests</span><span>' + reqLine + '</span></div>' +
+      verdict + ' ' + nonrev +
+      (f.feasible
+        ? '<div class="seg2"><span class="lb">Disruption</span><span>' + (f.disruption?.evicted ?? 0) + ' evicted · ' + (f.disruption?.restarts ?? 0) + ' restart</span></div>' +
+          '<div class="seg2"><span class="lb">Safety</span>' + pdb + '</div>' +
+          '<div class="seg2"><span class="lb">Target</span><span>' + shortN(f.target_node) + '</span></div>'
+        : '<div class="seg2" style="min-width:280px"><span class="lb">Reason</span><span class="small">' + (f.reason || '') + '</span></div>') +
+      '<div class="acts">' +
+        (f.feasible ? '<button class="btn ghost sm" data-act="plan">plan ▾</button>' : '') +
+        (f.feasible ? '<button class="btn ghost sm" data-act="why">WHY?</button>' : '') +
+        '<button class="btn primary sm" disabled title="' + applyTitle + '">APPLY</button>' +
+      '</div>' +
+      '<div class="plan">' + stepsHtml + '</div>';
+
+    el.querySelector('[data-act="plan"]')?.addEventListener('click', () => el.classList.toggle('open'));
+    el.querySelector('[data-act="why"]')?.addEventListener('click', () => showWhyPending(f.pending_pod_uid, f.pending_pod_name || req?.name));
+    box.appendChild(el);
+  });
+}
+
+function findPendingSpec(uid) {
+  return (state.snapshot?.pending || []).find(p => p.uid === uid);
+}
+
+async function showWhyPending(uid, name) {
+  try {
+    const r = await api('GET', '/clusters/' + state.clusterId + '/pending/' + uid + '/why');
+    $('whyTitle').textContent = 'Why — placing ' + (name || uid);
+    $('whyBody').textContent = r.evidence || '(no evidence returned)';
+    openM('m-why');
+  } catch (e) { toast('Why failed: ' + e.message); }
+}
+
+let balanceReqCounter = 0;
+async function refreshBalance() {
+  if (!state.snapshot) return;
+  const myReq = ++balanceReqCounter;
+  const body = {
+    max_swaps: state.controls.maxSwaps,
+    min_improvement_pct: state.controls.minImp,
+    exclude_non_reversible: state.controls.exclNonRev,
+    namespace_filter: state.controls.ns || null,
+  };
+  try {
+    const plan = await api('POST', '/clusters/' + state.clusterId + '/balance/plan', body);
+    if (myReq !== balanceReqCounter) return;
+    state.balance = plan;
+    renderBalancerMeter(plan);
+    renderSwapList(plan);
+  } catch (e) { toast('Balance failed: ' + e.message); }
+}
+
+function renderBalancerMeter(plan) {
+  const base = plan.base_entropy || 0;
+  const proj = plan.projected_entropy ?? base;
+  const pct = Math.round(plan.improvement_pct || 0);
+  $('entNow').textContent = base.toFixed(2);
+  $('entProj').textContent = proj.toFixed(2);
+  $('entPct').textContent = (pct > 0 ? '−' : '') + pct + '%';
+  $('entFill').style.width = Math.max(6, Math.min(100, base / 3.0 * 100)) + '%';
+  $('balImprove').textContent = pct > 0 ? ('−' + pct + '% possible') : 'balanced';
+  $('balImprove').className = 'pill small ' + (pct >= 15 ? 'amber' : 'gray');
+}
+
+function renderSwapList(plan) {
+  const box = $('swapList'); box.innerHTML = '';
+  const swaps = plan.swaps || [];
+  if (!swaps.length) {
+    box.innerHTML = '<div class="card small muted">No swaps above the ' + state.controls.minImp +
+      '% threshold' + (state.controls.exclNonRev ? ' (non-reversible workloads excluded)' : '') +
+      '. The system is balanced enough. ✅</div>';
+    return;
+  }
+  swaps.forEach((s, idx) => {
+    const el = document.createElement('div');
+    el.className = 'reco';
+    el.id = 'swap-' + s.swap_ref;
+    const first = idx === 0;
+    el.innerHTML =
+      '<div class="wl"><b>' + s.pod_a + '</b> <span class="ar">⇄</span> <b>' + s.pod_b + '</b>' +
+        '<div class="small muted">' + shortN(s.node_a) + ' / ' + shortN(s.node_b) + '</div></div>' +
+      '<span class="pill purple">SWAP</span>' +
+      '<div class="fromto"><span class="nodechip">' + shortN(s.node_a) + '</span><span class="ar">⇄</span><span class="nodechip">' + shortN(s.node_b) + '</span></div>' +
+      '<div class="seg2"><span class="lb">Entropy</span><span class="down">−' + (s.entropy_drop || 0).toFixed(2) + ' (' + Math.round(s.improvement_pct || 0) + '%)</span></div>' +
+      '<div class="seg2"><span class="lb">Disruption</span><span>' + (s.disruption?.evicted ?? 2) + ' evicted</span></div>' +
+      '<div class="seg2"><span class="lb">Safety</span><span class="pill green">PDB ' + (s.pdb_status || 'allowed') + '</span></div>' +
+      '<div class="seg2"><span class="lb">Order</span><span>' + (first ? 'best next' : '#' + (idx + 1)) + '</span></div>' +
+      '<div class="acts">' +
+        '<button class="btn ghost sm" data-swap="' + s.swap_ref + '" data-a="' + s.pod_a + '" data-b="' + s.pod_b + '">WHY?</button>' +
+        '<button class="btn primary sm" disabled title="APPLY is disabled in the advisor build">APPLY</button>' +
+      '</div>';
+    el.querySelector('[data-swap]').addEventListener('click', (e) => {
+      const t = e.currentTarget;
+      showWhySwap(t.dataset.swap, t.dataset.a, t.dataset.b);
+    });
+    box.appendChild(el);
+  });
+}
+
+async function showWhySwap(ref, a, b) {
+  try {
+    const r = await api('GET', '/clusters/' + state.clusterId + '/balance/' + ref + '/why');
+    $('whyTitle').textContent = 'Why — swap ' + a + ' ⇄ ' + b;
+    $('whyBody').textContent = r.evidence || '(no evidence returned)';
+    openM('m-why');
+  } catch (e) { toast('Why failed: ' + e.message); }
+}
+
+function renderNodeCard(node) {
+  const free = { cpu: node.cpu_free, mem: node.mem_free };
+  const tot = { cpu: node.cpu_alloc, mem: node.mem_alloc };
+  const r = node.ratio || 0;
+  const pv = state.snapshot?.pivot || 0;
+  const hot = Math.abs(pv - r) > 0.35;
+  const cpuUsedPct = tot.cpu > 0 ? Math.round((tot.cpu - free.cpu) / tot.cpu * 100) : 0;
+  const memUsedPct = tot.mem > 0 ? Math.round((tot.mem - free.mem) / tot.mem * 100) : 0;
+  const d = document.createElement('div');
+  d.className = 'node' + (hot ? ' hot' : '');
+  let chips = '';
+  (node.pods || []).forEach(p => {
+    const cls = p.cpu_req >= p.mem_req ? 'cpuheavy' : 'memheavy';
+    chips += '<span class="podchip ' + cls + '">' + (p.reversible === false ? '<span class="lock">🔒</span>' : '') +
+      p.name + ' <span class="small muted">' + p.cpu_req + '/' + p.mem_req + '</span></span>';
+  });
+  d.innerHTML =
+    '<div class="nname">' + shortN(node.name) + ' <span class="pill ' + (hot ? 'red' : 'gray') + ' small">ratio ' + r.toFixed(2) + '</span></div>' +
+    '<div class="meter"><div class="ml"><span>CPU</span><span>' + cpuUsedPct + '% used · ' + free.cpu + 'mC free</span></div>' +
+    '<div class="bar cpu"><i style="width:' + cpuUsedPct + '%"></i></div></div>' +
+    '<div class="meter"><div class="ml"><span>Mem</span><span>' + memUsedPct + '% used · ' + free.mem + 'MB free</span></div>' +
+    '<div class="bar mem"><i style="width:' + memUsedPct + '%"></i></div></div>' +
+    '<div class="podchips">' + chips + '</div>';
+  return d;
+}
+
+function renderBalNodes(snap) {
+  const box = $('balNodes'); box.innerHTML = '';
+  (snap.nodes || []).forEach(n => box.appendChild(renderNodeCard(n)));
+}
+function renderSchedNodes(snap) {
+  const box = $('schedNodes'); box.innerHTML = '';
+  (snap.nodes || []).forEach(n => box.appendChild(renderNodeCard(n)));
+}
+
+function drawPivotLine(snap) {
+  const svg = $('pivotline'); if (!svg) return;
+  const W = 1080, y = 54, padX = 48;
+  const nodes = (snap.nodes || []).map(n => ({ name: n.name, r: Math.max(0.03, Math.min(30, n.ratio || 0)) }));
+  const pv = snap.pivot || 0;
+  if (!nodes.length) { svg.innerHTML = ''; svg.dataset.init = ''; return; }
+  const logs = nodes.map(o => Math.log(o.r)).concat([Math.log(Math.max(0.03, Math.min(30, pv)))]);
+  let lo = Math.min(...logs), hi = Math.max(...logs);
+  if (hi - lo < 0.6) { lo -= 0.3; hi += 0.3; }
+  const m = (hi - lo) * 0.14; lo -= m; hi += m;
+  const xOf = (r) => padX + (Math.log(Math.max(0.03, Math.min(30, r))) - lo) / (hi - lo) * (W - 2 * padX);
+
+  let s = '<line x1="' + padX + '" y1="' + y + '" x2="' + (W - padX) + '" y2="' + y + '" stroke="#d3d8de" stroke-width="2"/>';
+  s += '<text x="' + padX + '" y="' + (y + 30) + '" font-size="10" fill="#8a93a3">more CPU-starved →← memory-starved</text>';
+  const px = xOf(pv);
+  s += '<line x1="' + px + '" y1="' + (y - 26) + '" x2="' + px + '" y2="' + (y + 18) + '" stroke="#1b2430" stroke-width="2" stroke-dasharray="3 3"/>';
+  s += '<text x="' + px + '" y="' + (y - 30) + '" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1b2430">pivot ' + pv.toFixed(2) + '</text>';
+  nodes.forEach(o => {
+    const nx = xOf(o.r);
+    const far = Math.abs(pv - o.r) > 0.35;
+    const fill = far ? '#fbeeee' : '#e7f6ee';
+    const stroke = far ? '#b02a2a' : '#127a4a';
+    s += '<g transform="translate(' + nx + ',0)">' +
+      '<circle r="10" cy="' + y + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="2"/>' +
+      '<text y="' + (y - 16) + '" text-anchor="middle" font-size="11" font-weight="600" fill="#33475f">' + shortN(o.name) + '</text>' +
+      '<text y="' + (y + 22) + '" text-anchor="middle" font-size="9.5" fill="#8a93a3">' + o.r.toFixed(2) + '</text>' +
+      '</g>';
+  });
+  svg.innerHTML = s;
+}
+
+let controlTimer = null;
+function onControls() {
+  $('minImpV').textContent = $('minImp').value + '%';
+  state.controls.minImp = +$('minImp').value;
+  state.controls.ns = $('nsFilter').value;
+  state.controls.maxSwaps = +$('maxSwaps').value;
+  state.controls.exclNonRev = $('exclNonrev').checked;
+  clearTimeout(controlTimer);
+  controlTimer = setTimeout(refreshBalance, 250);
+}
+
+// initial load
+loadClusters();
+</script>
+</body>
+</html>
