@@ -17,21 +17,39 @@ time, and the tool re-snapshots between actions.
 ## Repo layout
 
 ```
-engine/    # pure JVM engine over a cluster snapshot (algorithms + tests)
+engine/    pure JVM engine over a cluster snapshot (algorithms + tests)
+api/       REST wrapper (Spring Boot) exposing /api/v1 over the engine
 ```
 
 Additional modules (collector, executor, UI, deploy chart) will land in future work.
 
-## Build (engine)
+## Build
+
+The Gradle wrapper lives at the repo root and drives both subprojects. Requires
+JDK ≥ 21 (tested on JDK 25 and 26); the wrapper is pinned to Gradle 9.7.1.
 
 ```bash
-cd engine
-./gradlew test
+./gradlew test                 # runs engine + api tests
+./gradlew :engine:test         # engine only
+./gradlew :api:test            # api only
 ```
 
-Requires JDK ≥ 21 (tested on JDK 25/26). The Gradle wrapper is pinned to 9.7.1. The
-engine has no cluster/network dependencies — it's a pure library over synthetic
-snapshot fixtures.
+## Run the API locally
+
+```bash
+./gradlew :api:bootRun
+```
+
+By default the server binds to `:8080` and seeds an in-memory `synth` cluster so the
+endpoints work without a real Kubernetes connection.
+
+```bash
+curl -s http://localhost:8080/healthz
+curl -s http://localhost:8080/api/v1/clusters/synth/snapshot
+curl -s http://localhost:8080/api/v1/clusters/synth/pending
+curl -s -X POST -H 'Content-Type: application/json' -d '{}' \
+     http://localhost:8080/api/v1/clusters/synth/balance/plan
+```
 
 ## Lineage
 
@@ -39,4 +57,5 @@ The engine ports the 2018 prototype's algorithms (`CapacityPlacementServiceImpl`
 `SystemControllerImpl` + `WorkLoadBalancerImpl`) into pure, I/O-free functions with
 several correctness fixes to the recursion, priority ordering, and eligibility
 filters. The balancer no longer executes swaps inline — it only computes an ordered
-swap list; the executor path is out of scope for this module.
+swap list. Any cluster-mutating executor is intentionally out of scope for these
+modules.
