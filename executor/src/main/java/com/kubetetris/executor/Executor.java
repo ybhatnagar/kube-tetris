@@ -53,7 +53,12 @@ public class Executor {
 
     public ExecutionResult executeMove(KubernetesClient client, ExecutionRequest request,
                                        FaultInjector injector) {
-        return execute(client, request, injector);
+        return execute(client, request, injector, AbortSignal.never());
+    }
+
+    public ExecutionResult execute(KubernetesClient client, ExecutionRequest request,
+                                   FaultInjector injector) {
+        return execute(client, request, injector, AbortSignal.never());
     }
 
     /**
@@ -66,12 +71,27 @@ public class Executor {
      * move committed.
      */
     public ExecutionResult execute(KubernetesClient client, ExecutionRequest request,
-                                   FaultInjector injector) {
+                                   FaultInjector injector, AbortSignal abort) {
         String journalId = "j-" + UUID.randomUUID().toString().substring(0, 8);
+        return executeWithId(journalId, client, request, injector, abort);
+    }
+
+    /**
+     * Same as {@link #execute} but the caller supplies the {@code journalId}. Used by the
+     * async wrappers that pre-create the journal entry so the abort endpoint can find it
+     * before {@code execute} returns.
+     */
+    public ExecutionResult executeWithId(String journalId, KubernetesClient client,
+                                         ExecutionRequest request, FaultInjector injector,
+                                         AbortSignal abort) {
         Instant startedAt = Instant.now(clock);
-        JournalEntry entry = new JournalEntry(journalId, request.clusterId(), request.kind(),
-                request.summary(), startedAt, null, ExecutionOutcome.RUNNING, List.of());
-        journal.create(entry);
+        // If a caller (typically ApplyService, for async use) has already registered the
+        // journal entry, keep it; otherwise create it now so single-shot callers still work.
+        if (journal.get(journalId).isEmpty()) {
+            JournalEntry entry = new JournalEntry(journalId, request.clusterId(), request.kind(),
+                    request.summary(), startedAt, null, ExecutionOutcome.RUNNING, List.of());
+            journal.create(entry);
+        }
 
         List<PlanStep> moves = movesOnly(request.steps());
         if (moves.isEmpty()) {
@@ -84,6 +104,12 @@ public class Executor {
 
         int committedMoves = 0;
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
+            if (abort.isAborted()) {
+                markRemainingAsReverted(steps, journalId, moveIndex);
+                return finish(journalId, ExecutionOutcome.ABORTED,
+                        "Aborted before move " + moveIndex + "; " + committedMoves + " earlier move(s) already committed. " +
+                        (committedMoves > 0 ? "Operator action may be required to restore the pre-apply state." : "No net change to the cluster."));
+            }
             PlanStep move = moves.get(moveIndex);
             MoveOutcome outcome = runSingleMove(client, request, moveIndex, moves.size(),
                     move, steps, journalId, injector);

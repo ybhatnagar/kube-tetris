@@ -41,6 +41,14 @@ public final class SyntheticApplier {
         JournalEntry entry = new JournalEntry(journalId, clusterId, request.kind(),
                 request.summary(), startedAt, null, ExecutionOutcome.RUNNING, List.of());
         journal.create(entry);
+        return applyWithId(journalId, clusterId, request);
+    }
+
+    public ExecutionResult applyWithId(String journalId, String clusterId, ExecutionRequest request) {
+        if (journal.get(journalId).isEmpty()) {
+            journal.create(new JournalEntry(journalId, clusterId, request.kind(), request.summary(),
+                    Instant.now(clock), null, ExecutionOutcome.RUNNING, List.of()));
+        }
 
         List<JournalStep> steps = new ArrayList<>();
         List<PlanStep> moves = new ArrayList<>();

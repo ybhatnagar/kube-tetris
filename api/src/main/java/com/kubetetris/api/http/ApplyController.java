@@ -62,6 +62,17 @@ public class ApplyController {
         return ResponseEntity.ok(toExecutionDto(entry, null));
     }
 
+    @PostMapping("/apply/{journalId}:abort")
+    public ResponseEntity<ExecutionDto> abort(@PathVariable String id, @PathVariable String journalId) {
+        if (registry.find(id).isEmpty()) return ResponseEntity.notFound().build();
+        JournalEntry entry = journal.get(journalId).orElse(null);
+        if (entry == null || !id.equals(entry.clusterId())) return ResponseEntity.notFound().build();
+        applyService.abort(journalId);
+        // Give the executor a moment to observe the flag between legs.
+        JournalEntry updated = journal.get(journalId).orElse(entry);
+        return ResponseEntity.ok(toExecutionDto(updated, null));
+    }
+
     @GetMapping("/history")
     public ResponseEntity<HistoryListDto> history(@PathVariable String id) {
         if (registry.find(id).isEmpty()) return ResponseEntity.notFound().build();

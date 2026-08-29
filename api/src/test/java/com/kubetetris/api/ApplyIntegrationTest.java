@@ -9,17 +9,20 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Exercises the synth-cluster apply path end-to-end: /pending → apply → /snapshot mutated
+ * Exercises the async apply path end-to-end: /pending → apply → poll → /snapshot mutated
  * → /history reflects the run.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class ApplyIntegrationTest {
 
     @LocalServerPort int port;
@@ -28,13 +31,16 @@ class ApplyIntegrationTest {
     private String base() { return "http://localhost:" + port; }
 
     @BeforeEach
-    void refresh() {
+    void refresh() throws Exception {
+        // Wait for any in-flight async apply from a prior test method to drain before we
+        // reset the snapshot. Otherwise the previous apply's mutation could land on top of
+        // the freshly-collected fixture and skew this test's assertions.
+        Thread.sleep(300);
         rest.postForEntity(base() + "/api/v1/clusters/synth/collect", null, JsonNode.class);
     }
 
     @Test
-    void applySchedulerPlanMutatesSyntheticSnapshotAndAppendsHistory() {
-        // Find pending pod uid for 'checkout'
+    void applySchedulerPlanMutatesSyntheticSnapshotAndAppendsHistory() throws Exception {
         JsonNode pending = rest.getForEntity(base() + "/api/v1/clusters/synth/pending", JsonNode.class)
                 .getBody().get("pending");
         String checkoutUid = null;
@@ -53,10 +59,12 @@ class ApplyIntegrationTest {
         ResponseEntity<JsonNode> apply = rest.postForEntity(
                 base() + "/api/v1/clusters/synth/apply", req, JsonNode.class);
         assertThat(apply.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(apply.getBody().get("status").asText()).isEqualTo("applied");
         String journalId = apply.getBody().get("journal_id").asText();
 
-        // Snapshot should no longer list checkout as pending
+        JsonNode final_ = pollUntil(journalId, r -> !"running".equals(r.get("status").asText()));
+        assertThat(final_.get("status").asText()).isEqualTo("applied");
+
+        // Snapshot should no longer list checkout as pending.
         JsonNode snap = rest.getForEntity(base() + "/api/v1/clusters/synth/snapshot", JsonNode.class).getBody();
         boolean stillPending = false;
         for (JsonNode p : snap.get("pending")) {
@@ -64,11 +72,9 @@ class ApplyIntegrationTest {
         }
         assertThat(stillPending).as("checkout should be placed after apply").isFalse();
 
-        // History has one applied entry
+        // History has the applied entry.
         JsonNode history = rest.getForEntity(base() + "/api/v1/clusters/synth/history", JsonNode.class)
                 .getBody().get("entries");
-        assertThat(history.isArray()).isTrue();
-        assertThat(history.size()).isGreaterThanOrEqualTo(1);
         boolean found = false;
         for (JsonNode h : history) {
             if (journalId.equals(h.get("journal_id").asText())) {
@@ -81,7 +87,7 @@ class ApplyIntegrationTest {
     }
 
     @Test
-    void applyBalancerSwapMutatesSyntheticSnapshot() {
+    void applyBalancerSwapMutatesSyntheticSnapshot() throws Exception {
         rest.postForEntity(base() + "/api/v1/clusters/synth/balance/plan", Map.of(), JsonNode.class);
 
         Map<String, Object> req = new HashMap<>();
@@ -92,7 +98,9 @@ class ApplyIntegrationTest {
         ResponseEntity<JsonNode> apply = rest.postForEntity(
                 base() + "/api/v1/clusters/synth/apply", req, JsonNode.class);
         assertThat(apply.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(apply.getBody().get("status").asText()).isEqualTo("applied");
+        String journalId = apply.getBody().get("journal_id").asText();
+        JsonNode final_ = pollUntil(journalId, r -> !"running".equals(r.get("status").asText()));
+        assertThat(final_.get("status").asText()).isEqualTo("applied");
 
         // After the swap, entropy should be lower.
         JsonNode snap = rest.getForEntity(base() + "/api/v1/clusters/synth/snapshot", JsonNode.class).getBody();
@@ -108,7 +116,7 @@ class ApplyIntegrationTest {
     }
 
     @Test
-    void pollApplyReturnsJournalState() {
+    void pollApplyReturnsJournalState() throws Exception {
         JsonNode pending = rest.getForEntity(base() + "/api/v1/clusters/synth/pending", JsonNode.class)
                 .getBody().get("pending");
         String checkoutUid = pending.get(0).get("pending_pod_uid").asText();
@@ -121,11 +129,22 @@ class ApplyIntegrationTest {
         ResponseEntity<JsonNode> apply = rest.postForEntity(
                 base() + "/api/v1/clusters/synth/apply", req, JsonNode.class);
         String journalId = apply.getBody().get("journal_id").asText();
+        pollUntil(journalId, r -> !"running".equals(r.get("status").asText()));
 
         ResponseEntity<JsonNode> poll = rest.getForEntity(
                 base() + "/api/v1/clusters/synth/apply/" + journalId, JsonNode.class);
         assertThat(poll.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(poll.getBody().get("journal_id").asText()).isEqualTo(journalId);
         assertThat(poll.getBody().has("steps")).isTrue();
+    }
+
+    private JsonNode pollUntil(String journalId, Predicate<JsonNode> done) throws Exception {
+        for (int i = 0; i < 40; i++) {
+            ResponseEntity<JsonNode> r = rest.getForEntity(
+                    base() + "/api/v1/clusters/synth/apply/" + journalId, JsonNode.class);
+            if (r.getStatusCode().is2xxSuccessful() && done.test(r.getBody())) return r.getBody();
+            Thread.sleep(50);
+        }
+        throw new AssertionError("poll timed out on journal " + journalId);
     }
 }
