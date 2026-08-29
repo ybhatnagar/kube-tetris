@@ -14,6 +14,7 @@ import com.kubetetris.engine.domain.BalancePlanResult;
 import com.kubetetris.engine.domain.FeasibilityResult;
 import com.kubetetris.engine.domain.NodeState;
 import com.kubetetris.engine.domain.PlanStep;
+import com.kubetetris.engine.domain.PodPins;
 import com.kubetetris.engine.domain.PodSpec;
 import com.kubetetris.engine.domain.SnapshotView;
 import com.kubetetris.engine.domain.SwapStep;
@@ -24,10 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Bridges internal engine values to wire DTOs. Fields that the engine doesn't track
- * yet (node zone/instance-type/cordoned/ready/taints, pod PDB state, pins) are emitted
- * with conservative defaults so the wire schema is complete from day one; when the
- * collector lands with real data those defaults will get replaced.
+ * Bridges internal engine values to wire DTOs. Fields the domain didn't originally carry
+ * (node zone/instance-type/cordoned/ready/taints, pod PDB state, pins) now live on the
+ * engine records too — the mapper just forwards them.
  */
 public final class EngineMapper {
 
@@ -48,16 +48,16 @@ public final class EngineMapper {
         for (PodSpec p : node.pods()) pods.add(toPodDto(p, node.name()));
         return new NodeDto(
                 node.name(),
-                null,
-                null,
+                node.spec().zone(),
+                node.spec().instanceType(),
                 node.spec().allocatable().cpuMillicore(),
                 node.spec().allocatable().memoryMB(),
                 node.free().cpuMillicore(),
                 node.free().memoryMB(),
                 node.cpuMemRatio(),
-                false,
-                true,
-                List.of(),
+                node.spec().cordoned(),
+                node.spec().ready(),
+                node.spec().taints(),
                 pods
         );
     }
@@ -72,11 +72,16 @@ public final class EngineMapper {
                 p.request().cpuMillicore(),
                 p.request().memoryMB(),
                 p.qos().name(),
-                new OwnerRefDto(p.ownerKind(), null),
+                new OwnerRefDto(p.ownerKind(), p.ownerName()),
                 p.reversible(),
-                true,
-                PinDto.empty()
+                p.pdbOk(),
+                toPinDto(p.pins())
         );
+    }
+
+    private static PinDto toPinDto(PodPins pins) {
+        if (pins == null) return PinDto.empty();
+        return new PinDto(pins.nodeSelector(), pins.affinity(), pins.topologySpread(), pins.hostPath(), pins.pvc());
     }
 
     public static FeasibilityDto toFeasibilityDto(FeasibilityResult r, String podName) {
