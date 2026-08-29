@@ -113,6 +113,11 @@
   .stale{background:var(--amber-bg);border:1px solid var(--amber-br);color:var(--amber);border-radius:10px;padding:11px 14px;margin:12px 0;display:none;align-items:center;gap:10px;font-size:13px}
   .stale.show{display:flex}
   .advisor-badge{background:var(--accent-bg);border:1px solid var(--accent-br);color:var(--accent);border-radius:10px;padding:11px 14px;margin:12px 0;display:flex;align-items:center;gap:10px;font-size:13px}
+  .exline{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border)}
+  .exline .ico{width:16px;flex:0 0 auto;text-align:center}
+  .exline.rb{color:var(--amber)} .exline.fail{color:var(--red)}
+  .spin{width:14px;height:14px;border:2px solid #c9d3df;border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
   footer.note{color:var(--faint);font-size:12px;text-align:center;padding:16px}
   .legendrow{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:2px 0 4px}
   .lgd{display:inline-flex;align-items:center;gap:6px}
@@ -123,7 +128,7 @@
 <div class="topbar">
   <div class="logo">KT</div>
   <h1>Kube Tetris</h1>
-  <div class="env"><span class="dot"></span> <span>advisor mode · no writes to any cluster</span></div>
+  <div class="env"><span class="dot"></span> <span>applies changes with your approval</span></div>
 </div>
 
 <main>
@@ -132,8 +137,8 @@
       <h2 style="margin:0">Connect a Kubernetes cluster</h2>
       <button class="btn primary sm" onclick="openM('m-cluster')">+ Add cluster</button>
     </div>
-    <p class="sub">Pick a connected cluster to open its workspace. This build is a read-only advisor:
-      it computes migration plans but doesn't apply them.</p>
+    <p class="sub">Pick a connected cluster to open its workspace. Every change is applied only on your
+      explicit approval; the tool re-snapshots between actions.</p>
     <div class="clgrid" id="clusters"></div>
   </section>
 
@@ -141,16 +146,15 @@
     <div class="between">
       <div>
         <h2 style="margin:0">Workspace — <span id="wsCluster">—</span></h2>
-        <p class="sub" style="margin:2px 0 0">Live view of the cluster snapshot. In this build, APPLY buttons are advisory only.</p>
+        <p class="sub" style="margin:2px 0 0">Live view of the cluster snapshot. Migrations are applied one at a time; the view re-snapshots after each apply.</p>
       </div>
       <div class="row">
         <span class="pill blue" id="snapPill">snapshot —</span>
         <button class="btn sm" onclick="reSnapshot()">↻ Refresh</button>
+        <button class="btn sm" onclick="openHistory()">🕑 History <span class="pill gray small" id="histCount">0</span></button>
         <button class="btn sm" onclick="showScreen(1)">Switch cluster</button>
       </div>
     </div>
-
-    <div class="advisor-badge"><span>ⓘ</span><span>This build is an <b>advisor</b>. APPLY actions are disabled while the executor is still under construction.</span></div>
 
     <div class="tabs">
       <div class="tab active" data-t="sched" onclick="setTab('sched')">🧩 Scheduler <span class="pill gray small" id="schedCount">—</span></div>
@@ -242,8 +246,34 @@
   <div class="row" style="margin-top:18px"><button class="btn" onclick="closeM('m-why')">Close</button></div>
 </div></div>
 
+<div class="overlay" id="m-apply"><div class="modal">
+  <div class="row" style="align-items:flex-start"><h3 id="applyTitle">Apply plan?</h3><button class="x" onclick="closeM('m-apply')">×</button></div>
+  <p class="sub" id="applyDesc" style="margin:10px 0 0"></p>
+  <div id="applyRisk"></div>
+  <div class="evidence" id="applySteps"></div>
+  <label class="switch" style="margin-top:2px"><input type="checkbox" id="ackRisk"> I understand this evicts and reschedules the pods above.</label>
+  <div class="row" style="gap:10px;margin-top:20px">
+    <button class="btn" onclick="closeM('m-apply')">Cancel</button>
+    <button class="btn primary" style="margin-left:auto" onclick="confirmApply()">Apply &amp; watch execution</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="m-exec"><div class="modal">
+  <div class="row" style="align-items:flex-start"><h3 id="execTitle">Executing…</h3><span class="pill blue" id="execState" style="margin-left:10px">running</span></div>
+  <p class="sub" style="margin:8px 0 6px">Each leg is journaled. Any failure rolls back the earlier legs; the panel updates as the executor reports.</p>
+  <div id="execSteps"></div>
+  <div class="row" style="gap:10px;margin-top:18px"><button class="btn primary" style="margin-left:auto" id="execClose" disabled onclick="execDone()">Close</button></div>
+</div></div>
+
+<div class="overlay" id="m-hist"><div class="modal">
+  <div class="row" style="align-items:flex-start"><h3>Applied-plan history</h3><button class="x" onclick="closeM('m-hist')">×</button></div>
+  <p class="sub" style="margin:8px 0 6px">Every plan that ran on this cluster — durable, append-only. Rolled-back attempts are recorded too.</p>
+  <div id="histList"></div>
+  <div class="row" style="margin-top:18px"><button class="btn" onclick="closeM('m-hist')">Close</button></div>
+</div></div>
+
 <div id="toast"></div>
-<footer class="note">Kube Tetris · reads via /api/v1 · advisor build (no cluster writes)</footer>
+<footer class="note">Kube Tetris · reads &amp; applies via /api/v1</footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -373,6 +403,7 @@ async function refreshAll(collect) {
     drawPivotLine(snap);
     await refreshPending();
     await refreshBalance();
+    await loadHistoryCount();
   } catch (e) { toast('Load failed: ' + e.message); }
 }
 
@@ -449,12 +480,19 @@ function renderPending() {
       '<div class="acts">' +
         (f.feasible ? '<button class="btn ghost sm" data-act="plan">plan ▾</button>' : '') +
         (f.feasible ? '<button class="btn ghost sm" data-act="why">WHY?</button>' : '') +
-        '<button class="btn primary sm" disabled title="' + applyTitle + '">APPLY</button>' +
+        '<button class="btn primary sm" data-pending="' + f.pending_pod_uid + '" data-name="' + (f.pending_pod_name || '') + '">APPLY</button>' +
       '</div>' +
       '<div class="plan">' + stepsHtml + '</div>';
 
     el.querySelector('[data-act="plan"]')?.addEventListener('click', () => el.classList.toggle('open'));
     el.querySelector('[data-act="why"]')?.addEventListener('click', () => showWhyPending(f.pending_pod_uid, f.pending_pod_name || req?.name));
+    const applyBtn = el.querySelector('[data-pending]');
+    if (applyBtn && f.feasible) {
+      applyBtn.addEventListener('click', () => askApplyPending(f));
+    } else if (applyBtn) {
+      applyBtn.disabled = true;
+      applyBtn.title = 'plan is infeasible';
+    }
     box.appendChild(el);
   });
 }
@@ -528,11 +566,14 @@ function renderSwapList(plan) {
       '<div class="seg2"><span class="lb">Order</span><span>' + (first ? 'best next' : '#' + (idx + 1)) + '</span></div>' +
       '<div class="acts">' +
         '<button class="btn ghost sm" data-swap="' + s.swap_ref + '" data-a="' + s.pod_a + '" data-b="' + s.pod_b + '">WHY?</button>' +
-        '<button class="btn primary sm" disabled title="APPLY is disabled in the advisor build">APPLY</button>' +
+        '<button class="btn primary sm" data-swap="' + s.swap_ref + '" data-a="' + s.pod_a + '" data-b="' + s.pod_b + '" data-first="' + first + '"' + (first ? '' : ' disabled title="apply the best swap first"') + '>APPLY</button>' +
       '</div>';
-    el.querySelector('[data-swap]').addEventListener('click', (e) => {
-      const t = e.currentTarget;
-      showWhySwap(t.dataset.swap, t.dataset.a, t.dataset.b);
+    el.querySelectorAll('[data-swap]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const t = e.currentTarget;
+        if (t.classList.contains('primary')) askApplySwap(t.dataset.swap, t.dataset.a, t.dataset.b);
+        else showWhySwap(t.dataset.swap, t.dataset.a, t.dataset.b);
+      });
     });
     box.appendChild(el);
   });
@@ -619,9 +660,138 @@ function onControls() {
   state.controls.minImp = +$('minImp').value;
   state.controls.ns = $('nsFilter').value;
   state.controls.maxSwaps = +$('maxSwaps').value;
-  state.controls.exclNonRev = $('exclNonrev').checked;
+  state.controls.exclNonrev = $('exclNonrev').checked;
+  state.controls.exclNonRev = state.controls.exclNonrev;
   clearTimeout(controlTimer);
   controlTimer = setTimeout(refreshBalance, 250);
+}
+
+/* ============================ APPLY ============================ */
+let pendingApply = null;
+
+function askApplyPending(f) {
+  const stepsText = (f.plan || []).map((s, i) => (i + 1) + '. ' + s.action + ' ' + s.pod_name +
+    (s.to_node ? ' → ' + shortN(s.to_node) : '')).join('<br>');
+  $('applyTitle').textContent = 'Apply plan to place ' + (f.pending_pod_name || f.pending_pod_uid) + '?';
+  $('applyDesc').textContent = f.moves + ' migration' + (f.moves === 1 ? '' : 's') + ' via ' +
+    f.strategy + ' → ' + shortN(f.target_node) + '. The list re-snapshots after apply.';
+  $('applyRisk').innerHTML = f.touches_nonreversible
+    ? '<div class="warn" style="margin-top:12px"><span>⚠</span><span>This plan touches a non-reversible workload. Excluded by default — you are overriding.</span></div>'
+    : '';
+  $('applySteps').innerHTML = stepsText;
+  $('ackRisk').checked = false;
+  pendingApply = { kind: 'pending', uid: f.pending_pod_uid, label: f.pending_pod_name };
+  openM('m-apply');
+}
+
+function askApplySwap(swapRef, a, b) {
+  $('applyTitle').textContent = 'Apply swap ' + a + ' ⇄ ' + b + '?';
+  $('applyDesc').textContent = 'Evicts both pods and steers each to the other node. The view re-snapshots after.';
+  $('applyRisk').innerHTML = '';
+  $('applySteps').innerHTML = '1. evict + steer <b>' + a + '</b><br>2. evict + steer <b>' + b + '</b>';
+  $('ackRisk').checked = false;
+  pendingApply = { kind: 'swap', swapRef, label: a + ' ⇄ ' + b };
+  openM('m-apply');
+}
+
+async function confirmApply() {
+  if (!$('ackRisk').checked) { toast('Please acknowledge the change first'); return; }
+  if (!pendingApply) return;
+  closeM('m-apply');
+  const body = { ack: true, opts: { dry_run: false, ready_timeout_s: 60 } };
+  if (pendingApply.kind === 'pending') body.pending_pod_uid = pendingApply.uid;
+  else body.swap_ref = pendingApply.swapRef;
+
+  $('execTitle').textContent = 'Executing — ' + pendingApply.label;
+  $('execState').textContent = 'running';
+  $('execState').className = 'pill blue';
+  $('execClose').disabled = true;
+  $('execSteps').innerHTML = '';
+  openM('m-exec');
+
+  try {
+    const result = await api('POST', '/clusters/' + state.clusterId + '/apply', body);
+    renderExecution(result);
+    if (result.status === 'running') pollExecution(result.journal_id);
+    else finalizeExecution(result);
+  } catch (e) {
+    $('execState').textContent = 'error';
+    $('execState').className = 'pill red';
+    $('execClose').disabled = false;
+    $('execSteps').innerHTML = '<div class="exline fail"><span>✗ ' + e.message + '</span></div>';
+  }
+}
+
+async function pollExecution(journalId) {
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      const r = await api('GET', '/clusters/' + state.clusterId + '/apply/' + journalId);
+      renderExecution(r);
+      if (r.status !== 'running') { finalizeExecution(r); return; }
+    } catch (e) { /* keep polling */ }
+  }
+}
+
+function renderExecution(result) {
+  const box = $('execSteps'); box.innerHTML = '';
+  (result.steps || []).forEach(s => {
+    const cls = s.state === 'failed' ? 'exline fail' : s.state === 'reverted' ? 'exline rb' : 'exline';
+    const ico = s.state === 'done' ? '<span style="color:var(--green)">✓</span>'
+      : s.state === 'failed' ? '<span>✗</span>'
+      : s.state === 'running' ? '<span class="spin"></span>'
+      : s.state === 'reverted' ? '<span>↩</span>' : '·';
+    box.appendChild(Object.assign(document.createElement('div'), {
+      className: cls,
+      innerHTML: '<span class="ico">' + ico + '</span><span>' + s.label +
+        (s.detail ? ' <span class="small muted">— ' + s.detail + '</span>' : '') + '</span>'
+    }));
+  });
+}
+
+function finalizeExecution(result) {
+  const status = result.status;
+  const label = { applied: 'done', rolled_back: 'rolled back', needs_attention: 'needs attention' }[status] || status;
+  const pill = status === 'applied' ? 'green' : status === 'rolled_back' ? 'amber' : 'red';
+  $('execState').textContent = label;
+  $('execState').className = 'pill ' + pill;
+  $('execClose').disabled = false;
+}
+
+async function execDone() {
+  closeM('m-exec');
+  await refreshAll(false);   // re-fetch snapshot / pending / balance
+  await loadHistoryCount();
+}
+
+async function loadHistoryCount() {
+  try {
+    const r = await api('GET', '/clusters/' + state.clusterId + '/history');
+    $('histCount').textContent = (r.entries || []).length;
+  } catch (e) { /* ignore */ }
+}
+
+async function openHistory() {
+  try {
+    const r = await api('GET', '/clusters/' + state.clusterId + '/history');
+    const entries = r.entries || [];
+    const box = $('histList');
+    if (!entries.length) {
+      box.innerHTML = '<div class="card small muted">No plans applied yet on this cluster.</div>';
+    } else {
+      box.innerHTML = entries.map(h => {
+        const outcomePill = h.outcome === 'applied' ? '<span class="pill green">applied</span>'
+          : h.outcome === 'rolled_back' ? '<span class="pill amber">rolled back · no change</span>'
+          : '<span class="pill red">needs attention</span>';
+        const when = h.ts ? new Date(h.ts).toLocaleString() : '';
+        return '<div class="card" style="margin-bottom:8px;padding:11px 13px">' +
+          '<div class="between"><b class="small">' + h.kind + '</b>' + outcomePill + '</div>' +
+          '<div style="margin-top:4px">' + h.summary + '</div>' +
+          '<div class="small muted" style="margin-top:2px">' + h.effect + ' · ' + when + '</div></div>';
+      }).join('');
+    }
+    openM('m-hist');
+  } catch (e) { toast('History fetch failed: ' + e.message); }
 }
 
 // initial load
