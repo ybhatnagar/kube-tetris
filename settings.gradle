@@ -1,3 +1,4 @@
 rootProject.name = 'kube-tetris'
 include 'engine'
+include 'collector'
 include 'api'

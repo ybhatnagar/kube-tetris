@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.kubetetris'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':engine')
+    implementation 'io.fabric8:kubernetes-client:6.13.4'
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+
+    testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.13'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'io.fabric8:kubernetes-server-mock:6.13.4'
+    testImplementation 'org.assertj:assertj-core:3.25.3'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        exceptionFormat 'full'
+    }
+}
