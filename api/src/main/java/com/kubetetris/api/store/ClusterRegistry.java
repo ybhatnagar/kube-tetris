@@ -23,9 +23,11 @@ public class ClusterRegistry {
         return record;
     }
 
-    public ClusterRecord create(String name, String apiUrl, String authMethod, String credentialRef) {
+    public ClusterRecord create(String name, String apiUrl, String authMethod,
+                                String credentialRef, String kubeConfigPath) {
         String id = "c" + seq.getAndIncrement();
-        return register(new ClusterRecord(id, name, apiUrl, authMethod, credentialRef, false));
+        return register(new ClusterRecord(id, name, apiUrl, authMethod, credentialRef,
+                kubeConfigPath, false));
     }
 
     public Optional<ClusterRecord> find(String id) {

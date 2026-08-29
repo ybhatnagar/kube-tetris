@@ -4,5 +4,6 @@ public record ClusterCreateRequestDto(
         String name,
         String apiUrl,
         String authMethod,
-        String credentialRef
+        String credentialRef,
+        String kubeConfigPath
 ) {}

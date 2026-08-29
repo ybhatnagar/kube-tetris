@@ -32,7 +32,7 @@ public class SyntheticSeeder {
 
     @PostConstruct
     public void seed() {
-        registry.register(new ClusterRecord(SYNTH_ID, SYNTH_NAME, null, "synthetic", null, true));
+        registry.register(new ClusterRecord(SYNTH_ID, SYNTH_NAME, null, "synthetic", null, null, true));
         snapshots.put(SYNTH_ID, SnapshotFactory.uiMockupFixture(), Instant.now(clock));
     }
 }

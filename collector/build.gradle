@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'java-library'
 }
 
 group = 'com.kubetetris'
@@ -15,8 +15,8 @@ repositories {
 }
 
 dependencies {
-    implementation project(':engine')
-    implementation 'io.fabric8:kubernetes-client:6.13.4'
+    api project(':engine')
+    api 'io.fabric8:kubernetes-client:6.13.4'
     implementation 'org.slf4j:slf4j-api:2.0.13'
 
     testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.13'

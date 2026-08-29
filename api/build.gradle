@@ -18,6 +18,7 @@ repositories {
 
 dependencies {
     implementation project(':engine')
+    implementation project(':collector')
     implementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

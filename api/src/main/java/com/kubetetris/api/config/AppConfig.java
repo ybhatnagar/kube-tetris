@@ -1,5 +1,6 @@
 package com.kubetetris.api.config;
 
+import com.kubetetris.collector.KubernetesCollector;
 import com.kubetetris.engine.balancer.Balancer;
 import com.kubetetris.engine.config.EngineConfig;
 import com.kubetetris.engine.scheduler.Scheduler;
@@ -24,6 +25,11 @@ public class AppConfig {
     @Bean
     public Balancer balancer(EngineConfig config) {
         return new Balancer(config);
+    }
+
+    @Bean
+    public KubernetesCollector kubernetesCollector() {
+        return new KubernetesCollector();
     }
 
     @Bean

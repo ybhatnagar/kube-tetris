@@ -35,7 +35,8 @@ public class ClusterController {
 
     @PostMapping
     public ResponseEntity<ClusterDto> create(@RequestBody ClusterCreateRequestDto body) {
-        ClusterRecord rec = registry.create(body.name(), body.apiUrl(), body.authMethod(), body.credentialRef());
+        ClusterRecord rec = registry.create(body.name(), body.apiUrl(), body.authMethod(),
+                body.credentialRef(), body.kubeConfigPath());
         return ResponseEntity.status(HttpStatus.CREATED).body(rec.toDto());
     }
 
