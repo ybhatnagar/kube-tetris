@@ -1,7 +1,6 @@
 package com.kubetetris.executor;
 
 import com.kubetetris.engine.domain.PlanStep;
-import com.kubetetris.executor.internal.Evictor;
 import com.kubetetris.executor.internal.LegFailedException;
 import com.kubetetris.executor.internal.ReadyWaiter;
 import com.kubetetris.executor.internal.Steerer;
@@ -35,15 +34,21 @@ public class Executor {
     private final Journal journal;
     private final Clock clock;
     private final Duration pollInterval;
+    private final EvictionStrategy evictionStrategy;
 
     public Executor(Journal journal, Clock clock) {
-        this(journal, clock, Duration.ofMillis(200));
+        this(journal, clock, Duration.ofMillis(200), EvictionStrategies.policyV1Eviction());
     }
 
-    Executor(Journal journal, Clock clock, Duration pollInterval) {
+    public Executor(Journal journal, Clock clock, EvictionStrategy evictionStrategy) {
+        this(journal, clock, Duration.ofMillis(200), evictionStrategy);
+    }
+
+    Executor(Journal journal, Clock clock, Duration pollInterval, EvictionStrategy evictionStrategy) {
         this.journal = journal;
         this.clock = clock;
         this.pollInterval = pollInterval;
+        this.evictionStrategy = evictionStrategy;
     }
 
     public ExecutionResult executeMove(KubernetesClient client, ExecutionRequest request,
@@ -121,7 +126,7 @@ public class Executor {
 
             runLeg(steps, journalId, base + 2, moveIndex, injector, FailurePoint.EVICT,
                     "evicted " + move.pod().name() + " (" + move.pod().namespace() + ")", () -> {
-                if (!request.dryRun()) Evictor.evict(client, move.pod());
+                if (!request.dryRun()) evictionStrategy.evict(client, move.pod());
             });
             evicted = !request.dryRun();
 

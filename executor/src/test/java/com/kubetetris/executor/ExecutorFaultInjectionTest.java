@@ -27,7 +27,7 @@ class ExecutorFaultInjectionTest {
     @BeforeEach
     void setup() {
         journal = new InMemoryJournal();
-        executor = new Executor(journal, Clock.systemUTC(), Duration.ofMillis(10));
+        executor = new Executor(journal, Clock.systemUTC(), Duration.ofMillis(10), EvictionStrategies.delete());
     }
 
     @Test

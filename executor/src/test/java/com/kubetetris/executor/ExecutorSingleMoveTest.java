@@ -21,7 +21,7 @@ class ExecutorSingleMoveTest {
     @BeforeEach
     void setup() {
         journal = new InMemoryJournal();
-        executor = new Executor(journal, Clock.systemUTC(), Duration.ofMillis(20));
+        executor = new Executor(journal, Clock.systemUTC(), Duration.ofMillis(20), EvictionStrategies.delete());
     }
 
     @Test
