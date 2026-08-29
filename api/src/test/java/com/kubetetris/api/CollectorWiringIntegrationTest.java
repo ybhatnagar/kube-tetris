@@ -53,7 +53,10 @@ class CollectorWiringIntegrationTest {
     }
 
     @Test
-    void collectOnNonSynthClusterWithoutKubeConfigPathReturns400() {
+    void collectOnNonSynthClusterWithoutKubeConfigPathFallsBackToAutoConfig() {
+        // With no kubeconfig path the collector tries auto-configuration (KUBECONFIG,
+        // ~/.kube/config, or in-cluster ServiceAccount). In the test environment none of
+        // those points at a reachable cluster, so the collection fails at the wire — 502.
         Map<String, Object> body = Map.of(
                 "name", "no-path", "auth_method", "kubeconfig");
         ResponseEntity<JsonNode> created = rest.postForEntity(base() + "/api/v1/clusters", body, JsonNode.class);
@@ -61,8 +64,8 @@ class CollectorWiringIntegrationTest {
 
         ResponseEntity<JsonNode> r = rest.postForEntity(base() + "/api/v1/clusters/" + id + "/collect",
                 null, JsonNode.class);
-        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(r.getBody().get("error").asText()).contains("kube_config_path");
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+        assertThat(r.getBody().get("error").asText()).contains("collection failed");
     }
 
     @Test

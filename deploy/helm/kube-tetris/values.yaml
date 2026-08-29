@@ -1,0 +1,51 @@
+## kube-tetris values.yaml
+
+## Container image running the api module. Build with:
+##   ./gradlew :api:bootJar && docker build -t kube-tetris/api:local .
+image:
+  repository: kube-tetris/api
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+## Replica count. Only one is meaningful today — the api is stateful (in-memory
+## registry + journal). Persistent storage is a follow-up.
+replicaCount: 1
+
+## The api binds to :8080 by default.
+service:
+  type: ClusterIP
+  port: 8080
+
+## Kubernetes ServiceAccount + RBAC. The chart creates a ServiceAccount and grants
+## the minimum RBAC the tool needs — nothing more. Do not widen these without a
+## clear reason; the whole point of the tool is invasive-by-consent.
+serviceAccount:
+  create: true
+  name: ""
+
+## Kubetetris asks for two categories of RBAC:
+##   * READ  — nodes, pods, poddisruptionbudgets (for planning and pre-flight)
+##   * WRITE — pods/eviction (for the executor), pods (patch for steering) and
+##             nodes (patch for cordon-based steering)
+## They are declared separately so an operator can grant only read to run the
+## advisor mode.
+rbac:
+  create: true
+  readOnly: false
+
+## Resource limits. Modest — the api is mostly idle between operator actions.
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+## Additional environment variables for the api container.
+env: {}
+
+## Node selection.
+nodeSelector: {}
+tolerations: []
+affinity: {}

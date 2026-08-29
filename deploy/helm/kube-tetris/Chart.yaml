@@ -1,0 +1,10 @@
+apiVersion: v2
+name: kube-tetris
+description: Human-in-the-loop pod-migration tool for resource-crunched clusters
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: kube-tetris
+sources:
+  - https://github.com/ybhatnagar/kube-tetris

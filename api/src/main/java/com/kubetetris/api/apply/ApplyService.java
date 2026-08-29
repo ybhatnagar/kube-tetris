@@ -197,7 +197,9 @@ public class ApplyService {
 
     private KubernetesClient kubeClient(ClusterRecord record) {
         if (record.kubeConfigPath() == null) {
-            throw new IllegalStateException("cluster " + record.id() + " has no kube_config_path");
+            // No file path — fall back to auto-configuration (KUBECONFIG env, ~/.kube/config,
+            // or in-cluster ServiceAccount when running inside a Kubernetes pod).
+            return new KubernetesClientBuilder().withConfig(Config.autoConfigure(null)).build();
         }
         try {
             String yaml = Files.readString(Path.of(record.kubeConfigPath()));

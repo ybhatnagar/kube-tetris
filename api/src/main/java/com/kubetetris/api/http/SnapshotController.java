@@ -46,12 +46,12 @@ public class SnapshotController {
         if (record.synthetic()) {
             view = SnapshotFactory.uiMockupFixture();
         } else {
-            if (record.kubeConfigPath() == null) {
-                return ResponseEntity.status(400).body(Map.of(
-                        "error", "cluster has no kube_config_path configured"));
-            }
             try {
-                view = collector.collect(KubeContext.ofFile(record.kubeConfigPath()));
+                // Fall back to in-cluster / auto-config when no kubeconfig path is set.
+                KubeContext ctx = record.kubeConfigPath() != null
+                        ? KubeContext.ofFile(record.kubeConfigPath())
+                        : new KubeContext(null, null);
+                view = collector.collect(ctx);
             } catch (RuntimeException e) {
                 return ResponseEntity.status(502).body(Map.of(
                         "error", "collection failed: " + e.getMessage()));
