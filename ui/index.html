@@ -34,6 +34,9 @@
   .btn:hover{background:var(--surface2)} .btn:disabled{opacity:.45;cursor:not-allowed}
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   .btn.primary:hover{background:#1d55cf}
+  .btn.danger{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.danger:hover{background:#8e2222}
+  .btn.danger:disabled{opacity:.45}
   .btn.ghost{border-color:transparent;color:var(--accent);padding:0 8px}
   .btn.sm{height:30px;font-size:12.5px;padding:0 12px}
   .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:20px;font-weight:500}
@@ -262,7 +265,10 @@
   <div class="row" style="align-items:flex-start"><h3 id="execTitle">Executing…</h3><span class="pill blue" id="execState" style="margin-left:10px">running</span></div>
   <p class="sub" style="margin:8px 0 6px">Each leg is journaled. Any failure rolls back the earlier legs; the panel updates as the executor reports.</p>
   <div id="execSteps"></div>
-  <div class="row" style="gap:10px;margin-top:18px"><button class="btn primary" style="margin-left:auto" id="execClose" disabled onclick="execDone()">Close</button></div>
+  <div class="row" style="gap:10px;margin-top:18px">
+    <button class="btn danger" id="execAbort" onclick="abortExecution()">Abort</button>
+    <button class="btn primary" style="margin-left:auto" id="execClose" disabled onclick="execDone()">Close</button>
+  </div>
 </div></div>
 
 <div class="overlay" id="m-hist"><div class="modal">
@@ -668,6 +674,7 @@ function onControls() {
 
 /* ============================ APPLY ============================ */
 let pendingApply = null;
+let runningJournalId = null;
 
 function askApplyPending(f) {
   const stepsText = (f.plan || []).map((s, i) => (i + 1) + '. ' + s.action + ' ' + s.pod_name +
@@ -706,11 +713,15 @@ async function confirmApply() {
   $('execState').textContent = 'running';
   $('execState').className = 'pill blue';
   $('execClose').disabled = true;
+  $('execAbort').disabled = false;
+  $('execAbort').style.display = '';
   $('execSteps').innerHTML = '';
+  runningJournalId = null;
   openM('m-exec');
 
   try {
     const result = await api('POST', '/clusters/' + state.clusterId + '/apply', body);
+    runningJournalId = result.journal_id;
     renderExecution(result);
     if (result.status === 'running') pollExecution(result.journal_id);
     else finalizeExecution(result);
@@ -718,7 +729,20 @@ async function confirmApply() {
     $('execState').textContent = 'error';
     $('execState').className = 'pill red';
     $('execClose').disabled = false;
+    $('execAbort').disabled = true;
     $('execSteps').innerHTML = '<div class="exline fail"><span>✗ ' + e.message + '</span></div>';
+  }
+}
+
+async function abortExecution() {
+  if (!runningJournalId) return;
+  $('execAbort').disabled = true;
+  try {
+    await api('POST', '/clusters/' + state.clusterId + '/apply/' + runningJournalId + ':abort');
+    toast('Abort signalled; waiting for the current leg to finish…');
+  } catch (e) {
+    toast('Abort failed: ' + e.message);
+    $('execAbort').disabled = false;
   }
 }
 
@@ -751,11 +775,17 @@ function renderExecution(result) {
 
 function finalizeExecution(result) {
   const status = result.status;
-  const label = { applied: 'done', rolled_back: 'rolled back', needs_attention: 'needs attention' }[status] || status;
-  const pill = status === 'applied' ? 'green' : status === 'rolled_back' ? 'amber' : 'red';
+  const label = { applied: 'done', rolled_back: 'rolled back',
+                  needs_attention: 'needs attention', aborted: 'aborted' }[status] || status;
+  const pill = status === 'applied' ? 'green'
+             : status === 'rolled_back' ? 'amber'
+             : status === 'aborted' ? 'amber' : 'red';
   $('execState').textContent = label;
   $('execState').className = 'pill ' + pill;
   $('execClose').disabled = false;
+  $('execAbort').disabled = true;
+  $('execAbort').style.display = 'none';
+  runningJournalId = null;
 }
 
 async function execDone() {
