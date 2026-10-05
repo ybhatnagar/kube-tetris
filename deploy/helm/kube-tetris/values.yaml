@@ -45,6 +45,16 @@ resources:
 ## Additional environment variables for the api container.
 env: {}
 
+## Durable storage for the journal and cluster registry. When enabled, a
+## PersistentVolumeClaim is created and mounted at /data; the api is pointed at it
+## via kubetetris.journal.storage=file and kubetetris.registry.path. When disabled
+## everything is in-memory and lost on restart (fine for demos / single-session use).
+persistence:
+  enabled: false
+  size: 1Gi
+  storageClass: ""
+  mountPath: /data
+
 ## Node selection.
 nodeSelector: {}
 tolerations: []

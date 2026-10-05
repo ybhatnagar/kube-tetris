@@ -37,13 +37,30 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.env }}
           env:
-            {{- range $k, $v := . }}
+            {{- if .Values.persistence.enabled }}
+            - name: KUBETETRIS_JOURNAL_STORAGE
+              value: "file"
+            - name: KUBETETRIS_JOURNAL_PATH
+              value: "{{ .Values.persistence.mountPath }}/journal"
+            - name: KUBETETRIS_REGISTRY_PATH
+              value: "{{ .Values.persistence.mountPath }}/registry"
+            {{- end }}
+            {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
           {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "kube-tetris.fullname" . }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

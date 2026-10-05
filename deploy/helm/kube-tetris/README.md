@@ -56,3 +56,18 @@ See `values.yaml` for the full option set. Common overrides:
 | `replicaCount`         | `1`                         | keep at 1 until persistence lands  |
 | `service.type`         | `ClusterIP`                 | flip to `LoadBalancer` for demos   |
 | `rbac.readOnly`        | `false`                     | `true` = advisor-only mode         |
+| `persistence.enabled`  | `false`                     | create a PVC and persist to disk   |
+| `persistence.size`     | `1Gi`                       | PVC size                           |
+| `persistence.mountPath`| `/data`                     | mount point inside the pod         |
+
+## Persistence
+
+With `persistence.enabled=true` the chart creates a `PersistentVolumeClaim` and mounts
+it at `/data`. The api is pointed at it via environment variables:
+
+- `KUBETETRIS_JOURNAL_STORAGE=file`
+- `KUBETETRIS_JOURNAL_PATH=/data/journal`
+- `KUBETETRIS_REGISTRY_PATH=/data/registry`
+
+The journal and cluster registry both survive restarts. With persistence disabled
+everything is in-memory and lost on pod replacement — fine for demos.

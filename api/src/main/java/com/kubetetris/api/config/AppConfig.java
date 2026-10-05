@@ -5,7 +5,6 @@ import com.kubetetris.engine.balancer.Balancer;
 import com.kubetetris.engine.config.EngineConfig;
 import com.kubetetris.engine.scheduler.Scheduler;
 import com.kubetetris.executor.Executor;
-import com.kubetetris.executor.InMemoryJournal;
 import com.kubetetris.executor.Journal;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,11 +32,6 @@ public class AppConfig {
     @Bean
     public KubernetesCollector kubernetesCollector() {
         return new KubernetesCollector();
-    }
-
-    @Bean
-    public Journal journal() {
-        return new InMemoryJournal();
     }
 
     @Bean
