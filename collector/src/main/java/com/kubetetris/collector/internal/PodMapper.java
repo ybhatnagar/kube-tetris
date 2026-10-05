@@ -19,7 +19,12 @@ public final class PodMapper {
 
     private PodMapper() {}
 
+    /** Backward-compatible: assumes no PDB index is available (every pod is PDB-allowed). */
     public static PodSpec toSpec(Pod pod) {
+        return toSpec(pod, PdbIndex.empty());
+    }
+
+    public static PodSpec toSpec(Pod pod, PdbIndex pdbs) {
         if (pod == null || pod.getMetadata() == null) return null;
         String uid = pod.getMetadata().getUid();
         String name = pod.getMetadata().getName();
@@ -31,9 +36,9 @@ public final class PodMapper {
         boolean reversible = ReversibilityClassifier.isReversible(pod);
         boolean systemCritical = ReversibilityClassifier.isSystemCritical(pod);
         PodPins pins = extractPins(pod);
-        // pdbOk is defaulted to true; a real PDB check will land alongside the executor.
+        boolean pdbOk = pdbs.allowsEviction(pod);
         return new PodSpec(uid, name, namespace, ownerKind, ownerName, req, qos,
-                reversible, systemCritical, true, pins);
+                reversible, systemCritical, pdbOk, pins);
     }
 
     static PodSpec.Qos qosOf(Pod pod) {

@@ -1,6 +1,7 @@
 package com.kubetetris.collector;
 
 import com.kubetetris.collector.internal.NodeMapper;
+import com.kubetetris.collector.internal.PdbIndex;
 import com.kubetetris.collector.internal.PodMapper;
 import com.kubetetris.engine.domain.NodeSpec;
 import com.kubetetris.engine.domain.NodeState;
@@ -53,6 +54,7 @@ public class KubernetesCollector {
             log.warn("Kubernetes list call failed: {}", e.getMessage());
             throw e;
         }
+        PdbIndex pdbs = PdbIndex.from(client);
 
         Map<String, List<PodSpec>> podsByNode = new HashMap<>();
         List<PodSpec> pending = new ArrayList<>();
@@ -60,7 +62,7 @@ public class KubernetesCollector {
             String phase = pod.getStatus() == null ? null : pod.getStatus().getPhase();
             if ("Succeeded".equals(phase) || "Failed".equals(phase)) continue;
 
-            PodSpec spec = PodMapper.toSpec(pod);
+            PodSpec spec = PodMapper.toSpec(pod, pdbs);
             if (spec == null) continue;
 
             String nodeName = pod.getSpec() == null ? null : pod.getSpec().getNodeName();
