@@ -1,0 +1,23 @@
+# Build outputs — rebuilt inside the image
+**/build
+**/.gradle
+
+# Local tooling / editors
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# OS / assistant / local-only docs
+.DS_Store
+.claude
+CLAUDE.md
+design-docs
+
+# Git & CI metadata — not needed at build time
+.git
+.github
+
+# Node (none today, but future-proof the ui subproject)
+**/node_modules
